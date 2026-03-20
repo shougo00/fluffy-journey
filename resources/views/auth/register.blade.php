@@ -1,31 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新規登録</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-<h2>新規登録</h2>
+<body class="bg-light">
 
-@if ($errors->any())
-    <div>
-        @foreach ($errors->all() as $error)
-            <p style="color:red;">{{ $error }}</p>
-        @endforeach
-    </div>
-@endif
+<div class="container">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-6 col-lg-5">
 
-<form method="POST" action="{{ route('register') }}">
-    @csrf
-    <div>
-        <label>ニックネーム</label>
-        <input type="text" name="nickname" value="" autocomplete="off">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+
+                    <h4 class="text-center mb-4">新規ユーザー登録</h4>
+
+                    <form method="POST" action="{{ route('register') }}">
+                        @csrf
+
+                        <!-- 名前 -->
+                        <div class="mb-3">
+                            <label class="form-label">名前</label>
+                            <input type="text"
+                                   name="name"
+                                   class="form-control @error('name') is-invalid @enderror"
+                                   value="{{ old('name') }}"
+                                   required>
+                            @error('name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <!-- メール -->
+                        <div class="mb-3">
+                            <label class="form-label">メールアドレス</label>
+                            <input type="email"
+                                   name="email"
+                                   class="form-control @error('email') is-invalid @enderror"
+                                   value="{{ old('email') }}"
+                                   required>
+                            @error('email')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <!-- パスワード -->
+                        <div class="mb-3">
+                            <label class="form-label">パスワード</label>
+                            <input type="password"
+                                   name="password"
+                                   class="form-control @error('password') is-invalid @enderror"
+                                   required>
+                            @error('password')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <!-- 確認 -->
+                        <div class="mb-3">
+                            <label class="form-label">パスワード（確認）</label>
+                            <input type="password"
+                                   name="password_confirmation"
+                                   class="form-control"
+                                   required>
+                        </div>
+
+                        <!-- 管理者チェック -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   name="is_admin"
+                                   value="1"
+                                   id="is_admin"
+                                   {{ old('is_admin') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="is_admin">
+                                管理者として登録
+                            </label>
+                        </div>
+
+                        <div class="d-grid">
+                            <button class="btn btn-primary">
+                                登録する
+                            </button>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <a href="{{ route('login') }}" class="text-decoration-none">
+                                すでにアカウントをお持ちですか？
+                            </a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
     </div>
-    <div>
-        <label>パスワード</label>
-        <input type="password" name="password" value="" autocomplete="new-password">
-    </div>
-    <button type="submit">登録</button>
-</form>
-<a href="{{ route('login') }}">ログインはこちら</a>
+</div>
+
 </body>
 </html>
