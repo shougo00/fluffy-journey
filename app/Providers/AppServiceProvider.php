@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\URL; // ← これ忘れずに
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,9 +19,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // 本番環境のみHTTPSを強制
-        if ($this->app->environment('production')) {
-            URL::forceScheme('https');
-        }
+        //
     }
 }
