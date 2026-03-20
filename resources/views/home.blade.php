@@ -6,7 +6,7 @@
 
         <!-- 左：お知らせ -->
         <div class="col-lg-7">
-            <h2 class="mb-4 fw-bold" style="font-size:1.8rem;">お知らせ</h2>
+            <h2 class="mb-4 fw-bold" style="font-size:1.8rem;">お知らせハート</h2>
 
             <div class="border rounded p-3" style="max-height: 550px; overflow-y: auto;">
                 @forelse($news as $item)
