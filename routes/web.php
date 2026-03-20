@@ -11,9 +11,8 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AvatarController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/login');
 });
-
 
 
 
