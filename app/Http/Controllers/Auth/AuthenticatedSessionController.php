@@ -9,21 +9,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
-
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Display the login view.
      */
-    
-   public function create(Request $request): View
-{
-    // 古いセッション破棄（スマホで閉じても安全）
-    $request->session()->invalidate();      // 必要なら flush() に置き換え
-    $request->session()->regenerateToken(); // 新しいCSRFトークンを発行
+    public function create(): View
+    {
+        return view('auth.login');
+    }
 
-    return view('auth.login');
-}
     /**
      * Handle an incoming authentication request.
      */
@@ -56,7 +51,5 @@ class AuthenticatedSessionController extends Controller
 
         return redirect()->route('login'); // ← ここが重要
     }
-
-
 
 }
