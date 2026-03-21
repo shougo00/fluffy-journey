@@ -12,6 +12,7 @@ class RecordController extends Controller
 {
     // 一覧表示
     
+
     public function index(Request $request)
     {
         $date = $request->date ?? date('Y-m-d');
@@ -20,16 +21,21 @@ class RecordController extends Controller
         $records = Record::with('shots')
             ->where('user_id', auth()->id())
             ->where('date', $date)
-            ->where('practice_type', $type) // ←練習タイプで絞り込み
+            ->where('practice_type', $type)
             ->orderBy('tate_no')
             ->get();
 
         $prevDate = Carbon::parse($date)->subDay()->format('Y-m-d');
         $nextDate = Carbon::parse($date)->addDay()->format('Y-m-d');
 
+        // Ajaxリクエストの場合は部分HTMLだけ返す
+        if ($request->ajax()) {
+            return view('partials.records', compact('records', 'type', 'date'))->render();
+        }
+
+        // 通常リクエストはフルビュー
         return view('home', compact('records', 'date', 'prevDate', 'nextDate', 'type'));
     }
-
     // 立追加
     public function store(Request $request)
     {

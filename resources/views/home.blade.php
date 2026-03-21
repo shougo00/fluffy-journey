@@ -21,6 +21,14 @@
     background: white;
     transition: 0.2s;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent; 
+    -webkit-text-size-adjust: 100%; 
+    touch-action: manipulation; 
+    transform-origin: center; /* アクティブ時のscaleも中心基準に */
+
+}
+.shot-btn:active {
+    transform: scale(1.05); /* 小さめに */
 }
 
 
@@ -175,8 +183,8 @@
             ＜
         </a>
 
-        <form method="GET" action="{{ route('home') }}">
-            <input type="date" name="date" value="{{ $date }}" class="form-control text-center">
+        <form id="date-form" method="GET" action="{{ route('home') }}">
+            <input type="date" name="date" value="{{ $date }}" class="form-control text-center" id="date-picker">
         </form>
 
         <a href="{{ route('home', ['date' => $nextDate]) }}" class="btn btn-outline-secondary">
@@ -252,77 +260,100 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const datePicker = document.getElementById('date-picker');
 
-    // ===== ショット切替処理 =====
-    document.querySelectorAll('.shot-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            let current = btn.dataset.result;
-            let next;
-            if(current === 'hit') next = 'miss';
-            else if(current === 'miss') next = null;
-            else next = 'hit';
+    datePicker.addEventListener('change', () => {
+        const date = datePicker.value;
 
-            // UI更新
-            btn.dataset.result = next;
-            btn.innerText = next === 'hit' ? '○' : (next === 'miss' ? '×' : '＋');
-            btn.classList.remove('shot-hit','shot-miss','shot-none');
-            btn.classList.add(next === 'hit' ? 'shot-hit' : (next === 'miss' ? 'shot-miss' : 'shot-none'));
+        fetch(`/home?date=${date}&type={{ $type }}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.text())
+        .then(html => {
+            // 返ってきたHTMLの一部（射撃リスト）だけ差し替え
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newRecords = doc.querySelector('.container').innerHTML;
+            document.querySelector('.container').innerHTML = newRecords;
 
-            // 的中数更新
-            let recordId = btn.dataset.record;
-            let parent = document.querySelectorAll(`[data-record='${recordId}']`);
-            let hits = 0;
-            parent.forEach(b => { if(b.dataset.result==='hit') hits++; });
-            document.getElementById(`result-${recordId}`).innerText = hits+'/4';
-
-            // サーバー送信
-            fetch(`/shots/${btn.dataset.id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type':'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({ result: next })
-            }).catch(err=>console.error(err));
+            // 置き換え後にボタンのイベント再登録
+            initShotButtons();
+            initDeleteButtons();
         });
     });
 
-    // ===== 立削除処理（番号詰め付き） =====
-    document.querySelectorAll('.delete-record').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if(!confirm('この立を削除しますか？')) return;
-
-            let recordId = btn.dataset.id;
-
-            fetch(`/records/${recordId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'Accept':'application/json'
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success){
-                    // 削除したカードを消す
-                    btn.closest('.card').remove();
-
-                    // 残った立番号を画面上で詰める
-                    document.querySelectorAll('.card').forEach((card, index) => {
-                        card.querySelector('strong').innerText = (index + 1) + '立目';
-
-                        // 結果のIDも更新したい場合はここで data-record を再割り当て
-                        let recordIdElem = card.querySelector('.delete-record');
-                        if(recordIdElem) recordIdElem.dataset.id = card.dataset.recordId; // 必要なら backend から再取得
-                    });
-                } else {
-                    alert('削除に失敗しました');
-                }
-            })
-            .catch(err => console.error(err));
+    // 元々あった関数を切り出す
+    function initShotButtons() {
+        document.querySelectorAll('.shot-btn').forEach(btn => {
+            btn.addEventListener('click', shotClickHandler);
         });
-    });
+    }
 
+    function initDeleteButtons() {
+        document.querySelectorAll('.delete-record').forEach(btn => {
+            btn.addEventListener('click', deleteClickHandler);
+        });
+    }
+
+    // 既存のクリック処理を関数化
+    function shotClickHandler() {
+        let btn = this;
+        let current = btn.dataset.result;
+        let next = current === 'hit' ? 'miss' : current === 'miss' ? null : 'hit';
+
+        btn.dataset.result = next;
+        btn.innerText = next === 'hit' ? '○' : (next === 'miss' ? '×' : '＋');
+        btn.classList.remove('shot-hit','shot-miss','shot-none');
+        btn.classList.add(next === 'hit' ? 'shot-hit' : (next === 'miss' ? 'shot-miss' : 'shot-none'));
+
+        let recordId = btn.dataset.record;
+        let parent = document.querySelectorAll(`[data-record='${recordId}']`);
+        let hits = 0;
+        parent.forEach(b => { if(b.dataset.result==='hit') hits++; });
+        document.getElementById(`result-${recordId}`).innerText = hits+'/4';
+
+        fetch(`/shots/${btn.dataset.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type':'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ result: next })
+        }).catch(err=>console.error(err));
+    }
+
+    function deleteClickHandler() {
+        let btn = this;
+        if(!confirm('この立を削除しますか？')) return;
+
+        let recordId = btn.dataset.id;
+
+        fetch(`/records/${recordId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept':'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success){
+                btn.closest('.card').remove();
+                document.querySelectorAll('.card').forEach((card, index) => {
+                    card.querySelector('strong').innerText = (index + 1) + '立目';
+                    let recordIdElem = card.querySelector('.delete-record');
+                    if(recordIdElem) recordIdElem.dataset.id = card.dataset.recordId;
+                });
+            } else {
+                alert('削除に失敗しました');
+            }
+        })
+        .catch(err => console.error(err));
+    }
+
+    // 初回ロード時にも登録
+    initShotButtons();
+    initDeleteButtons();
 });
 </script>
 
