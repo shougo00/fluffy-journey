@@ -15,9 +15,11 @@ class RecordController extends Controller
 
     public function index(Request $request)
     {
+        // リクエストから日付と練習タイプを取得、なければデフォルトを設定
         $date = $request->date ?? date('Y-m-d');
         $type = $request->type ?? 'official'; // デフォルトは正規練
 
+        // 該当ユーザーのレコードを取得（shotsリレーションも読み込む）
         $records = Record::with('shots')
             ->where('user_id', auth()->id())
             ->where('date', $date)
@@ -25,6 +27,7 @@ class RecordController extends Controller
             ->orderBy('tate_no')
             ->get();
 
+        // 前日・翌日の日付を計算
         $prevDate = Carbon::parse($date)->subDay()->format('Y-m-d');
         $nextDate = Carbon::parse($date)->addDay()->format('Y-m-d');
 
@@ -33,7 +36,7 @@ class RecordController extends Controller
             return view('partials.records', compact('records', 'type', 'date'))->render();
         }
 
-        // 通常リクエストはフルビュー
+        // 通常リクエストはフルビューを返す
         return view('home', compact('records', 'date', 'prevDate', 'nextDate', 'type'));
     }
     // 立追加
