@@ -16,15 +16,14 @@ class AuthenticatedSessionController extends Controller
      * Display the login view.
      */
     
-    public function create(Request $request)
-    {
-        // 古いセッションを破棄
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+   public function create(Request $request): View
+{
+    // 古いセッション破棄（スマホで閉じても安全）
+    $request->session()->invalidate();      // 必要なら flush() に置き換え
+    $request->session()->regenerateToken(); // 新しいCSRFトークンを発行
 
-        return view('auth.login');
-    }
-
+    return view('auth.login');
+}
     /**
      * Handle an incoming authentication request.
      */
