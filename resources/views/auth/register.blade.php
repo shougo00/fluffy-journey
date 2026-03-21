@@ -24,7 +24,7 @@
 
                         <!-- 名前 -->
                         <div class="mb-3">
-                            <label class="form-label">名前</label>
+                            <label class="form-label">ニックネーム</label>
                             <input type="text"
                                    name="name"
                                    class="form-control @error('name') is-invalid @enderror"
@@ -37,7 +37,8 @@
 
                         <!-- メール -->
                         <div class="mb-3">
-                            <label class="form-label">メールアドレス</label>
+                            <label class="form-label">メールアドレス ※名前＠Gmail.comで大丈夫です。本物は入れないで。
+                            </label>
                             <input type="email"
                                    name="email"
                                    class="form-control @error('email') is-invalid @enderror"
@@ -67,19 +68,6 @@
                                    name="password_confirmation"
                                    class="form-control"
                                    required>
-                        </div>
-
-                        <!-- 管理者チェック -->
-                        <div class="form-check mb-3">
-                            <input class="form-check-input"
-                                   type="checkbox"
-                                   name="is_admin"
-                                   value="1"
-                                   id="is_admin"
-                                   {{ old('is_admin') ? 'checked' : '' }}>
-                            <label class="form-check-label" for="is_admin">
-                                管理者として登録
-                            </label>
                         </div>
 
                         <div class="d-grid">

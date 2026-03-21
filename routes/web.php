@@ -4,11 +4,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\QuestController;
-use App\Http\Controllers\GameController;
-use App\Http\Controllers\TaskController;
-use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\RecordController;
+use App\Http\Controllers\Admin\NewsController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -18,10 +16,7 @@ Route::get('/', function () {
 
 // 1️⃣ ダッシュボードルート（ログイン後のホーム）
 Route::middleware([ 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard'); // resources/views/dashboard.blade.php 必須
-    })->name('dashboard');
-
+    
     // 2️⃣ プロフィール関連
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -41,50 +36,15 @@ Route::middleware([ 'verified'])->group(function () {
         return view('home', compact('news'));
     })->name('home');
 
-    Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::resource('news', \App\Http\Controllers\Admin\NewsController::class);
+    Route::resource('news', NewsController::class)->except(['show']);
 
-    Route::middleware(['auth'])
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(function () {
+    // ホーム画面に変更
+    Route::get('/home', [RecordController::class, 'index'])->name('home');
+    // 立追加はそのまま
+    Route::post('/records', [RecordController::class, 'store'])->name('records.store');
+    Route::post('/shots/{id}', [RecordController::class, 'updateShot'])->name('shots.update');
+    Route::delete('/records/{record}', [RecordController::class, 'destroy'])->name('records.destroy');
 
-        Route::get('/users/status',
-            [\App\Http\Controllers\Admin\UserStatusController::class, 'index']
-        )->name('users.status.index');
-
-        Route::get('/users/{user}/status/edit',
-            [\App\Http\Controllers\Admin\UserStatusController::class, 'edit']
-        )->name('users.status.edit');
-
-        Route::put('/users/{user}/status',
-            [\App\Http\Controllers\Admin\UserStatusController::class, 'update']
-        )->name('users.status.update');
-
-        // ★ これを追加
-        Route::post('/users/{user}/exp',
-            [\App\Http\Controllers\Admin\UserStatusController::class, 'addExp']
-        )->name('users.exp.add');
-    });
-
-
-
-    // 学びクエスト
-    Route::get('/quest', [QuestController::class, 'index'])->name('quest.index');
-
-    // ゲーム
-    Route::get('/game', [GameController::class, 'index'])->name('game.index');
-
-    // 作業依頼
-    Route::get('/task', [TaskController::class, 'index'])->name('task.index');
-
-    // 設定
-    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-
-
-   
- 
-});
    // routes/web.php
     Route::get('/avatar', [AvatarController::class,'show'])->name('avatar.show');
     Route::get('/avatar/edit', [AvatarController::class,'edit'])->name('avatar.edit');

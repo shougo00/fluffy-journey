@@ -8,26 +8,20 @@ use Illuminate\Http\Request;
 
 class NewsController extends Controller
 {
-    /**
-     * お知らせ一覧
-     */
+    // 一覧
     public function index()
     {
         $news = News::latest()->paginate(10);
         return view('admin.news.index', compact('news'));
     }
 
-    /**
-     * 新規作成画面
-     */
+    // 作成フォーム
     public function create()
     {
         return view('admin.news.create');
     }
 
-    /**
-     * 保存
-     */
+    // 保存
     public function store(Request $request)
     {
         $request->validate([
@@ -36,27 +30,21 @@ class NewsController extends Controller
         ]);
 
         News::create([
-            'title'        => $request->title,
-            'body'         => $request->body,
+            'title' => $request->title,
+            'body' => $request->body,
             'is_published' => $request->has('is_published'),
         ]);
 
-        return redirect()
-            ->route('news.index')
-            ->with('success', 'お知らせを作成しました');
+        return redirect()->route('news.index')->with('success','お知らせを作成しました');
     }
 
-    /**
-     * 編集画面
-     */
+    // 編集フォーム
     public function edit(News $news)
     {
         return view('admin.news.edit', compact('news'));
     }
 
-    /**
-     * 更新
-     */
+    // 更新
     public function update(Request $request, News $news)
     {
         $request->validate([
@@ -65,25 +53,18 @@ class NewsController extends Controller
         ]);
 
         $news->update([
-            'title'        => $request->title,
-            'body'         => $request->body,
+            'title' => $request->title,
+            'body' => $request->body,
             'is_published' => $request->has('is_published'),
         ]);
 
-        return redirect()
-            ->route('news.index')
-            ->with('success', 'お知らせを更新しました');
+        return redirect()->route('news.index')->with('success','お知らせを更新しました');
     }
 
-    /**
-     * 削除
-     */
+    // 削除
     public function destroy(News $news)
     {
         $news->delete();
-
-        return redirect()
-            ->route('news.index')
-            ->with('success', 'お知らせを削除しました');
+        return redirect()->route('news.index')->with('success','お知らせを削除しました');
     }
 }

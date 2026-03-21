@@ -47,10 +47,10 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-            // 🔽 ここで分岐
-        if ($user->is_admin) {
-            return redirect()->route('dashboard');
-        }
+        //     // 🔽 ここで分岐
+        // if ($user->is_admin) {
+        //     return redirect()->route('dashboard');
+        // }
 
         return redirect()->route('home');
         }

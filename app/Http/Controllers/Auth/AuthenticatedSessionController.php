@@ -30,10 +30,10 @@ class AuthenticatedSessionController extends Controller
         $user = Auth::user();
 
       
-        // 管理者の場合
-        if ($user->is_admin) {
-            return redirect()->route('dashboard');
-        }
+        // // 管理者の場合
+        // if ($user->is_admin) {
+        //     return redirect()->route('dashboard');
+        // }
 
         // 一般ユーザーの場合
         return redirect()->route('home'); // 好きな画面に変更OK

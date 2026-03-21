@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<title>FamLevel</title>
+<title>Kyudo Stats</title>
 
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -105,7 +105,7 @@
                     <div class="navbar-avatar-box">
                         @foreach(['bottom','shoes','top','face','hair','accessory'] as $part)
                             @if($avatar->$part)
-                                <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part->image_path) }}"
+                                <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part) }}"
                                      class="navbar-avatar-layer {{ $part }}">
                             @endif
                         @endforeach
@@ -113,29 +113,33 @@
                 </a>
             @else
                 <a href="{{ route('avatar.show') }}" class="me-2">
-                    <img src="{{ asset('avatars/default.png') }}" alt="デフォルトアバター"
+                    <img src="{{ asset('avatars/default.png') }}"
                          style="width:40px;height:50px;object-fit:contain;">
                 </a>
             @endif
         @endauth
+
         <i class="bi bi-journal-bookmark-fill text-primary fs-3 me-2"></i>
-        <span class="fw-bold text-dark">FamLevel</span>
+        <span class="fw-bold text-dark">Kyudo Stats</span>
     </div>
+
 
     {{-- スマホ用 --}}
     <div class="d-flex d-lg-none w-100 justify-content-between align-items-center">
-        <!-- 左アイコン -->
+
+        <!-- 左 -->
         <i class="bi bi-journal-bookmark-fill text-primary fs-3"></i>
 
-        <!-- 中央: アバター + FAMLEVEL -->
+        <!-- 中央 -->
         <div class="navbar-mobile-center">
             @auth
+                @php $avatar = Auth::user()->avatar; @endphp
                 @if($avatar)
                     <a href="{{ route('avatar.show') }}">
                         <div class="navbar-avatar-box">
                             @foreach(['bottom','shoes','top','face','hair','accessory'] as $part)
                                 @if($avatar->$part)
-                                    <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part->image_path) }}"
+                                    <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part) }}"
                                          class="navbar-avatar-layer {{ $part }}">
                                 @endif
                             @endforeach
@@ -143,50 +147,40 @@
                     </a>
                 @else
                     <a href="{{ route('avatar.show') }}">
-                        <img src="{{ asset('avatars/default.png') }}" alt="デフォルトアバター"
+                        <img src="{{ asset('avatars/default.png') }}"
                              style="width:35px;height:45px;object-fit:contain;">
                     </a>
                 @endif
             @endauth
-            <span class="fw-bold text-dark ms-1">FAMLEVEL</span>
+            <span class="fw-bold text-dark ms-1">Kyudo Stats</span>
         </div>
 
-        <!-- 右ハンバーガー -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-            data-bs-target="#navbarContent">
+        <!-- 右（ハンバーガー） -->
+        <button class="navbar-toggler" type="button"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#mobileMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
     </div>
 
-    {{-- メニュー --}}
-    <div class="collapse navbar-collapse" id="navbarContent">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+    {{-- PCメニュー --}}
+    <div class="collapse navbar-collapse d-none d-lg-flex">
+        <ul class="navbar-nav me-auto">
             <li class="nav-item">
-                <a class="nav-link active" href="{{ route('home') }}">ホーム</a>
+                <a class="nav-link active" href="{{ route('home') }}">　 的中記録</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ route('home') }}"> 的中履歴</a>
             </li>
         </ul>
 
-        <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+        <ul class="navbar-nav ms-auto align-items-center">
             @auth
-                @php
-                    $level = Auth::user()->level ?? 1;
-                    $exp = Auth::user()->exp ?? 30;
-                    $nextExp = Auth::user()->next_exp ?? 100;
-                    $percent = min(100, intval($exp / $nextExp * 100));
-                    $point = Auth::user()->point ?? 250;
-                @endphp
-
-                <li class="nav-item d-flex align-items-center me-3 flex-wrap">
-                    <span class="badge bg-primary me-2">Lv {{ $level }}</span>
-                    <div class="progress me-2 flex-grow-1" style="height:10px; min-width:50px;">
-                        <div class="progress-bar bg-success" style="width: {{ $percent }}%"></div>
-                    </div>
-                    <span class="badge bg-warning text-dark">{{ $point }} pt</span>
-                </li>
-
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button"
-                       data-bs-toggle="dropdown">{{ Auth::user()->name }}</a>
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                        {{ Auth::user()->name }}
+                    </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="{{ route('profile.edit') }}">プロフィール</a></li>
                         <li>
@@ -205,6 +199,69 @@
         </ul>
     </div>
 
+</div>
+
+{{-- 🔥 スマホ用サイドメニュー --}}
+<div class="offcanvas offcanvas-end d-lg-none" style="width: 50%;" tabindex="-1" id="mobileMenu">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">メニュー</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+
+    <div class="offcanvas-body">
+
+        @auth
+            @php $avatar = Auth::user()->avatar; @endphp
+
+            <div class="text-center mb-3">
+                @if($avatar)
+                    <div class="navbar-avatar-box mx-auto">
+                        @foreach(['bottom','shoes','top','face','hair','accessory'] as $part)
+                            @if($avatar->$part)
+                                <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part) }}"
+                                     class="navbar-avatar-layer {{ $part }}">
+                            @endif
+                        @endforeach
+                    </div>
+                @else
+                    <img src="{{ asset('avatars/default.png') }}"
+                         style="width:50px;height:60px;">
+                @endif
+
+                <div class="mt-2 fw-bold">{{ Auth::user()->name }}</div>
+            </div>
+        @endauth
+
+        <ul class="navbar-nav">
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="{{ route('home') }}">的中記録</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="{{ route('home') }}">的中履歴</a>
+            </li>
+
+            @auth
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{{ route('avatar.show') }}">アバター</a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{{ route('profile.edit') }}">プロフィール</a>
+                </li>
+
+                <li class="nav-item">
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="btn btn-danger w-100">ログアウト</button>
+                    </form>
+                </li>
+            @else
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('login') }}">ログイン</a>
+                </li>
+            @endauth
+        </ul>
+    </div>
 </div>
 </nav>
 

@@ -19,6 +19,7 @@
                 @endphp
 
                 @foreach($parts as $part => $data)
+                
                     <div class="mb-4">
                         <label class="form-label">{{ $data['label'] }}</label>
                         <div class="d-flex flex-wrap gap-2">
