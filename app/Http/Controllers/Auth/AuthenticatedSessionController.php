@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
+
 class AuthenticatedSessionController extends Controller
 {
     /**
@@ -16,6 +17,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
+        // 古いセッションを破棄
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
         return view('auth.login');
     }
 
@@ -51,5 +56,6 @@ class AuthenticatedSessionController extends Controller
 
         return redirect()->route('login'); // ← ここが重要
     }
+
 
 }
