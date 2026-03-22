@@ -1,7 +1,6 @@
 @extends('layouts.user')
 
 @section('content')
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <div class="container py-5">
     <h2 class="mb-4 text-center">アバター編集</h2>
 

@@ -171,7 +171,7 @@
                 <a class="nav-link active" href="{{ route('home') }}">　 的中記録</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link active" href="{{ route('home') }}"> 的中履歴</a>
+                <a class="nav-link active" href="{{ route('dashboard') }}"> 的中履歴</a>
             </li>
         </ul>
 
@@ -237,7 +237,7 @@
                 <a class="nav-link" href="{{ route('home') }}">的中記録</a>
             </li>
             <li class="nav-item mb-2">
-                <a class="nav-link" href="{{ route('home') }}">的中履歴</a>
+                <a class="nav-link" href="{{ route('dashboard') }}">的中履歴</a>
             </li>
 
             @auth

@@ -44,6 +44,7 @@ Route::middleware([ 'verified'])->group(function () {
     Route::post('/records', [RecordController::class, 'store'])->name('records.store');
     Route::post('/shots/{id}', [RecordController::class, 'updateShot'])->name('shots.update');
     Route::delete('/records/{record}', [RecordController::class, 'destroy'])->name('records.destroy');
+    Route::get('/dashboard', [RecordController::class, 'dashboard'])->name('dashboard');
 
    // routes/web.php
     Route::get('/avatar', [AvatarController::class,'show'])->name('avatar.show');

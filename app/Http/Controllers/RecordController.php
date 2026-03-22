@@ -35,9 +35,27 @@ class RecordController extends Controller
         if ($request->ajax()) {
             return view('partials.records', compact('records', 'type', 'date'))->render();
         }
+       $totalShots = $records->sum(function($record) {
+            return $record->shots->whereNotNull('result')->count();
+        });
+
+        $totalHits = $records->sum(function($record) {
+            return $record->shots->where('result', 'hit')->count();
+        });
+
+        $hitRate = $totalShots > 0 ? round(($totalHits / $totalShots) * 100, 3) : 0;
 
         // 通常リクエストはフルビューを返す
-        return view('home', compact('records', 'date', 'prevDate', 'nextDate', 'type'));
+        return view('home', compact(
+            'records',
+            'date',
+            'type',
+            'prevDate',
+            'nextDate',
+            'totalShots',
+            'totalHits',
+            'hitRate'
+        ));
     }
     // 立追加
     public function store(Request $request)
@@ -108,5 +126,87 @@ class RecordController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+    public function dashboard(Request $request)
+    {
+        $userId = auth()->id();
+
+        $type = $request->type ?? 'all';
+
+        // 月
+        $month = $request->month ?? now()->format('Y-m');
+        $current = \Carbon\Carbon::parse($month . '-01');
+
+        $start = $current->copy()->startOfMonth()->format('Y-m-d');
+        $end   = $current->copy()->endOfMonth()->format('Y-m-d');
+
+        // typeをURLに乗せて保持
+        $prevMonth = $current->copy()->subMonth()->format('Y-m');
+        $nextMonth = $current->copy()->addMonth()->format('Y-m');
+
+        // データ取得（今月）
+        $records = Record::with('shots')
+            ->where('user_id', $userId)
+            ->whereBetween('date', [$start, $end])
+            ->get();
+
+        // 共通計算
+        $calc = function($records) {
+            $shots = $records->sum(fn($r) => $r->shots->whereNotNull('result')->count());
+            $hits  = $records->sum(fn($r) => $r->shots->where('result','hit')->count());
+            $rate  = $shots > 0 ? round(($hits/$shots)*100,1) : 0;
+            return compact('shots','hits','rate');
+        };
+
+        // ===== 今日 =====
+        $today = now()->format('Y-m-d');
+        $todayRecords = Record::with('shots')
+            ->where('user_id', $userId)
+            ->where('date', $today)
+            ->get();
+
+        $todayOfficial = $calc($todayRecords->where('practice_type','official'));
+        $todaySelf     = $calc($todayRecords->where('practice_type','self'));
+        $todayAll      = $calc($todayRecords);
+
+        // ===== 月間 =====
+        $monthOfficial = $calc($records->where('practice_type','official'));
+        $monthSelf     = $calc($records->where('practice_type','self'));
+        $monthAll      = $calc($records);
+
+        // ===== 年間 =====
+        $year = $current->format('Y');
+        $yearStart = $year . '-01-01';
+        $yearEnd   = $year . '-12-31';
+
+        $yearRecords = Record::with('shots')
+            ->where('user_id', $userId)
+            ->whereBetween('date', [$yearStart, $yearEnd])
+            ->get();
+
+        $yearOfficial = $calc($yearRecords->where('practice_type','official'));
+        $yearSelf     = $calc($yearRecords->where('practice_type','self'));
+        $yearAll      = $calc($yearRecords);
+
+        // ===== カレンダー =====
+        $calendar = [];
+        foreach ($records->groupBy('date') as $date => $dayRecords) {
+            $calendar[$date] = [
+                'official' => $calc($dayRecords->where('practice_type','official')),
+                'self'     => $calc($dayRecords->where('practice_type','self')),
+                'all'      => $calc($dayRecords),
+            ];
+        }
+
+        return view('dashboard', compact(
+            'calendar',
+            'month',
+            'prevMonth',
+            'nextMonth',
+            'type',
+            'todayOfficial','todaySelf','todayAll',
+            'monthOfficial','monthSelf','monthAll',
+            'yearOfficial','yearSelf','yearAll'
+        ));
     }
 }

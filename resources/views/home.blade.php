@@ -12,25 +12,63 @@
     transition: background 0.3s;
 }
 
-/* ===== ボタン共通 ===== */
 .shot-btn {
     width: 65px;
     height: 65px;
     border-radius: 50%;
-    font-size: 26px;
     border: 2px solid #ccc;
     background: white;
-    transition: 0.2s;
     cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-text-size-adjust: 100%;
-    touch-action: manipulation;
-    transform-origin: center;
-}
-.shot-btn:active { transform: scale(1.05); }
 
-.shot-hit { color: red; font-weight: bold; font-size: 34px; transform: scale(1.1); }
-.shot-miss { color: blue; font-weight: bold; font-size: 38px; transform: scale(1.15); }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* アイコンサイズ */
+.shot-btn i {
+    font-size: 40px;
+}
+
+/* 状態カラー */
+.shot-hit i {
+    color: #ff3b30;
+}
+
+.shot-miss i {
+    font-size: 50px;  /* ←ここだけ大きく */
+    color: #007aff;
+}
+.shot-none {
+    color: #bbb;
+    border: 2px dashed #ccc;
+}
+.shot-none {
+    color: #bbb;
+    border: 2px dashed #ccc;
+}
+.fa-circle {
+    font-weight: 400 !important; 
+}
+
+
+.summary-text {
+    font-size: 13px;
+    color: #555;
+    letter-spacing: 0.5px;
+}
+
+/* 的中だけほんの少し強調 */
+.summary-text .hits {
+    color: #555;
+}
+
+/* 的中率は少しだけ目立たせる */
+.summary-text .rate {
+    color: #555;
+    font-weight: 500;
+}
+
 .shot-none { color: #bbb; border: 2px dashed #ccc; }
 .shot-none:hover { border-color: #666; background: #f8f9fa; }
 
@@ -66,21 +104,31 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">的中記録</h4>
 
-        <div class="practice-type-buttons">
-            <a href="{{ route('home', ['date'=>$date, 'type'=>'official']) }}" 
-            class="btn btn-sm {{ ($type ?? 'official') == 'official' ? 'btn-danger' : 'btn-outline-danger' }}">
-                正規練
-            </a>
+        <div class="d-flex align-items-center">
+            <!-- 的中率 -->
+            <div class="summary-text me-2" id="summary">
+                <span class="shots">{{ $totalShots }}射</span>
+                <span class="hits">{{ $totalHits }}中</span>
+                <span class="rate">{{ number_format($hitRate, 1) }}％</span>
+            </div>
 
-            <a href="{{ route('home', ['date'=>$date, 'type'=>'self']) }}" 
-            class="btn btn-sm {{ ($type ?? 'official') == 'self' ? 'btn-primary' : 'btn-outline-primary' }}">
-                自主練
-            </a>
+            <!-- ボタン -->
+            <div class="practice-type-buttons">
+                <a href="{{ route('home', ['date'=>$date, 'type'=>'official']) }}" 
+                class="btn btn-sm {{ ($type ?? 'official') == 'official' ? 'btn-danger' : 'btn-outline-danger' }}">
+                    正規練
+                </a>
+
+                <a href="{{ route('home', ['date'=>$date, 'type'=>'self']) }}" 
+                class="btn btn-sm {{ ($type ?? 'official') == 'self' ? 'btn-primary' : 'btn-outline-primary' }}">
+                    自主練
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- 日付ナビ -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
         <a href="{{ route('home', ['date' => $prevDate, 'type'=>$type]) }}" class="btn btn-outline-secondary">＜</a>
 
         <form id="date-form" method="GET" action="{{ route('home') }}">
@@ -118,7 +166,15 @@
                             data-record="{{ $record->id }}"
                             data-result="{{ $shot->result }}"
                             title="クリックで入力">
-                        {{ $shot->result == 'hit' ? '○' : ($shot->result == 'miss' ? '×' : '＋') }}
+
+                        @if($shot->result == 'hit')
+                          <i class="fa-regular fa-circle"></i>
+                        @elseif($shot->result == 'miss')
+                            <i class="fas fa-xmark"></i>
+                        @else
+                            ＋
+                        @endif
+
                     </button>
                 @endforeach
             </div>
@@ -160,7 +216,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let next = current==='hit'?'miss':current==='miss'?null:'hit';
 
         btn.dataset.result = next;
-        btn.innerText = next==='hit'?'○':next==='miss'?'×':'＋';
+       btn.innerHTML =
+        next==='hit'
+            ? '<i class="fas fa-circle"></i>'
+            : next==='miss'
+            ? '<i class="fas fa-xmark"></i>'
+            : '＋';
         btn.classList.remove('shot-hit','shot-miss','shot-none');
         btn.classList.add(next==='hit'?'shot-hit':next==='miss'?'shot-miss':'shot-none');
 
@@ -178,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body:JSON.stringify({result:next})
         }).catch(err=>console.error(err));
+        updateSummary();
     }
 
     function deleteClickHandler() {
@@ -205,6 +267,27 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(err=>console.error(err));
     }
+   function updateSummary() {
+    let buttons = document.querySelectorAll('.shot-btn');
+    let totalShots = 0;
+    let totalHits = 0;
+
+    buttons.forEach(btn => {
+        let result = btn.dataset.result;
+
+        if (result === 'hit' || result === 'miss') {
+            totalShots++;
+            if (result === 'hit') totalHits++;
+        }
+    });
+
+    // ★ここシンプルに
+    let rate = totalShots > 0 ? (totalHits / totalShots) * 100 : 0;
+
+    document.querySelector('#summary .shots').innerText = totalShots + '射';
+    document.querySelector('#summary .hits').innerText = totalHits + '中';
+    document.querySelector('#summary .rate').innerText = rate.toFixed(1) + '％';
+}
 
     updateBackground();
     initShotButtons();
