@@ -1,7 +1,7 @@
 @extends('layouts.user')
 
 @section('content')
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <style>
 /* ===== 今日・月間・年間 ===== */
 .summary-wrapper { display: flex; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; }
