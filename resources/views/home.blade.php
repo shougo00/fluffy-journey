@@ -18,6 +18,10 @@
     margin: 0 auto;
     transition: background 0.3s;
 }
+html, body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
 
 .shot-btn {
     width: 65px;
