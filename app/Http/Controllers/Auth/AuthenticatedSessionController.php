@@ -24,19 +24,18 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
-        $request->session()->regenerate();
+        $credentials = $request->only('email', 'password');
 
-        $user = Auth::user();
+        // remember対応ログイン
+        if (Auth::attempt($credentials, true)) {
+            $request->session()->regenerate();
 
-      
-        // // 管理者の場合
-        // if ($user->is_admin) {
-        //     return redirect()->route('dashboard');
-        // }
+            return redirect()->route('home');
+        }
 
-        // 一般ユーザーの場合
-        return redirect()->route('home'); // 好きな画面に変更OK
+        return back()->withErrors([
+            'email' => 'ログイン情報が正しくありません',
+        ]);
     }
 
     /**
