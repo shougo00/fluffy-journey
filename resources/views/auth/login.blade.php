@@ -26,9 +26,11 @@ html, body {
 }
 </style>
 <script>
-if (window.performance && performance.navigation.type === 2) {
-    location.reload(true);
-}
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
 </script>
 <body class="bg-light">
 
