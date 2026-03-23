@@ -11,6 +11,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>ログイン</title>
 
     <!-- Bootstrap CSS -->
@@ -22,7 +25,13 @@ html, body {
   touch-action: manipulation;
 }
 </style>
+<script>
+if (window.performance && performance.navigation.type === 2) {
+    location.reload(true);
+}
+</script>
 <body class="bg-light">
+
 
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
     <div class="card shadow-sm w-100" style="max-width: 420px;">
