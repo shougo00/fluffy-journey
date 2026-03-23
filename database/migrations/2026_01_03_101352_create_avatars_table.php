@@ -8,18 +8,16 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::create('avatars', function (Blueprint $table) {
+       Schema::create('avatars', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('hair_style')->nullable();
-            $table->string('hair_color')->nullable();
-            $table->string('skin_color')->nullable();
+            $table->unsignedBigInteger('user_id');
 
-            $table->unsignedBigInteger('clothes_id')->nullable();
-            $table->foreign('clothes_id')->references('id')->on('items')->onDelete('set null');
-
+            $table->unsignedBigInteger('hair_id')->nullable();
+            $table->unsignedBigInteger('face_id')->nullable();
+            $table->unsignedBigInteger('top_id')->nullable();
+            $table->unsignedBigInteger('bottom_id')->nullable();
+            $table->unsignedBigInteger('shoes_id')->nullable();
             $table->unsignedBigInteger('accessory_id')->nullable();
-            $table->foreign('accessory_id')->references('id')->on('items')->onDelete('set null');
 
             $table->timestamps();
         });
@@ -27,8 +25,16 @@ return new class extends Migration
 
     public function down()
     {
-        Schema::dropIfExists('avatars');
-        
+        Schema::table('avatars', function (Blueprint $table) {
+            $table->dropColumn([
+                'hair_id',
+                'face_id',
+                'top_id',
+                'bottom_id',
+                'shoes_id',
+                'accessory_id',
+            ]);
+        });
     }
 };
 

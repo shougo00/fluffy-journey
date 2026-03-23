@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('items', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->enum('type', ['clothes','accessory','hat','tool']);
+            $table->string('type');
             $table->integer('price');
             $table->string('image_path');
             $table->timestamps();

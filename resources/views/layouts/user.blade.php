@@ -54,16 +54,14 @@
         align-items: center;
     }
 
-    .navbar-avatar-layer {
-        width: 80%;
-        height: auto;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-    }
+   .navbar-avatar-layer {
+    width: 80%;
+    height: auto;
+    position: absolute;
+}
 
     /* パーツ縦位置調整 */
-    .navbar-avatar-layer.hair { top:0%; }
+    .navbar-avatar-layer.hair { top:0%;left: 10%; }
     .navbar-avatar-layer.face { top:20%; }
     .navbar-avatar-layer.top { top:50%; }
     .navbar-avatar-layer.bottom { top:70%; }
@@ -107,8 +105,8 @@
                     <div class="navbar-avatar-box">
                         @foreach(['bottom','shoes','top','face','hair','accessory'] as $part)
                             @if($avatar->$part)
-                                <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part) }}"
-                                     class="navbar-avatar-layer {{ $part }}">
+                                <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part->image_path) }}"
+                                    class="navbar-avatar-layer {{ $part }}">
                             @endif
                         @endforeach
                     </div>
@@ -141,8 +139,8 @@
                         <div class="navbar-avatar-box">
                             @foreach(['bottom','shoes','top','face','hair','accessory'] as $part)
                                 @if($avatar->$part)
-                                    <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part) }}"
-                                         class="navbar-avatar-layer {{ $part }}">
+                                    <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part->image_path) }}"
+                                    class="navbar-avatar-layer {{ $part }}">
                                 @endif
                             @endforeach
                         </div>
@@ -220,8 +218,8 @@
                     <div class="navbar-avatar-box mx-auto">
                         @foreach(['bottom','shoes','top','face','hair','accessory'] as $part)
                             @if($avatar->$part)
-                                <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part) }}"
-                                     class="navbar-avatar-layer {{ $part }}">
+                                    <img src="{{ asset('avatars/'.$part.'/'.$avatar->$part->image_path) }}"
+                                    class="navbar-avatar-layer {{ $part }}">
                             @endif
                         @endforeach
                     </div>
