@@ -25,12 +25,13 @@ canvas {
     position: absolute;
     top: 0;
     left: 0;
-     pointer-events: none; 
+    pointer-events: none; /* ← クリック貫通 */
 }
 
 button {
     margin-top: 10px;
     padding: 10px 20px;
+    margin-right: 5px;
 }
 </style>
 
@@ -43,6 +44,7 @@ button {
     </div>
 
     <button onclick="startCamera()">カメラ起動</button>
+    <button onclick="switchCamera()">内外カメラ切替</button>
 </div>
 
 <!-- MediaPipe -->
@@ -56,8 +58,9 @@ let canvasElement;
 let canvasCtx;
 let pose;
 let cameraInstance;
+let currentFacing = 'environment'; // 外カメスタート
 
-// 🔥 これが重要
+// 初期化
 document.addEventListener('DOMContentLoaded', () => {
 
     videoElement = document.getElementById('camera');
@@ -83,27 +86,39 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasElement.width = videoElement.videoWidth;
         canvasElement.height = videoElement.videoHeight;
 
-        canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
         drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS);
         drawLandmarks(canvasCtx, results.poseLandmarks);
-
-        canvasCtx.restore();
     });
 });
 
 // カメラ起動
 function startCamera() {
-    alert('クリックされた'); // ←これ出るはず
+    startStream(currentFacing);
+}
+
+// カメラ開始処理（共通）
+function startStream(facingMode) {
 
     navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { facingMode: facingMode },
         audio: false
     })
-    .then(s => {
-        videoElement.srcObject = s;
+    .then(stream => {
+
+        // 前のカメラ停止
+        if (videoElement.srcObject) {
+            videoElement.srcObject.getTracks().forEach(track => track.stop());
+        }
+
+        videoElement.srcObject = stream;
         videoElement.play();
+
+        // MediaPipe停止→再起動
+        if (cameraInstance) {
+            cameraInstance.stop();
+        }
 
         cameraInstance = new Camera(videoElement, {
             onFrame: async () => {
@@ -116,8 +131,14 @@ function startCamera() {
         cameraInstance.start();
     })
     .catch(err => {
-        alert('カメラ起動エラー: ' + err);
+        alert(err.name + ": " + err.message);
     });
+}
+
+// カメラ切り替え
+function switchCamera() {
+    currentFacing = (currentFacing === 'environment') ? 'user' : 'environment';
+    startStream(currentFacing);
 }
 </script>
 
