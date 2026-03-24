@@ -61,7 +61,7 @@
 }
 
     /* パーツ縦位置調整 */
-    .navbar-avatar-layer.hair { top:0%;left: 10%; }
+    .navbar-avatar-layer.hair { top:0%;left: 8%; }
     .navbar-avatar-layer.face { top:20%; }
     .navbar-avatar-layer.top { top:50%; }
     .navbar-avatar-layer.bottom { top:70%; }

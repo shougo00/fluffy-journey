@@ -8,6 +8,7 @@ use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\Admin\NewsController;
 
+
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -51,6 +52,10 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/avatar/edit', [AvatarController::class,'edit'])->name('avatar.edit');
     Route::post('/avatar/update', [AvatarController::class,'update'])->name('avatar.update');
 
+
+    Route::get('/camera', function () {
+    return view('camera');
+    })->name('camera');
 
 });
 
