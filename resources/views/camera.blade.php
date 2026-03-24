@@ -13,7 +13,6 @@
 
 .video-container {
     position: relative;
-    width: 100%;
 }
 
 video, canvas {
@@ -27,16 +26,10 @@ canvas {
     left: 0;
     pointer-events: none;
 }
-
-button {
-    margin-top: 10px;
-    padding: 10px 20px;
-    margin-right: 5px;
-}
 </style>
 
 <div class="camera-wrapper">
-    <h2>カメラ＋骨格検出（完全版）</h2>
+    <h2>カメラ＋骨格</h2>
 
     <div class="video-container">
         <video id="camera" autoplay playsinline></video>
@@ -44,29 +37,55 @@ button {
     </div>
 
     <button onclick="startCamera()">カメラ起動</button>
-    <button onclick="switchCamera()">カメラ切替</button>
+    <button onclick="switchCamera()">切替</button>
 </div>
 
 <!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 
 <script>
 let videoElement;
-let stream;
+let canvasElement;
+let canvasCtx;
+let pose;
+
 let videoDevices = [];
 let currentDeviceIndex = 0;
+let stream;
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
     videoElement = document.getElementById('camera');
+    canvasElement = document.getElementById('canvas');
+    canvasCtx = canvasElement.getContext('2d');
+
+    pose = new Pose({
+        locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
+
+    pose.setOptions({
+        modelComplexity: 1,
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+    });
+
+    pose.onResults(results => {
+        if (!results.poseLandmarks) return;
+
+        canvasElement.width = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS);
+        drawLandmarks(canvasCtx, results.poseLandmarks);
+    });
 });
 
-// ① 最初は外カメで起動
+// 外カメで起動
 async function startCamera() {
 
-    // まず外カメで起動（これ重要）
     stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
         audio: false
@@ -75,18 +94,16 @@ async function startCamera() {
     videoElement.srcObject = stream;
     videoElement.play();
 
-    // ② ここで初めてカメラ一覧取得
     await loadDevices();
+
+    startPoseLoop(); // ← 🔥 これが重要
 }
 
-// カメラ一覧取得
+// カメラ一覧
 async function loadDevices() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     videoDevices = devices.filter(d => d.kind === 'videoinput');
 
-    console.log(videoDevices);
-
-    // 外カメを特定
     const backIndex = videoDevices.findIndex(d =>
         d.label.toLowerCase().includes('back') ||
         d.label.toLowerCase().includes('rear')
@@ -97,20 +114,15 @@ async function loadDevices() {
     }
 }
 
-// 切り替え
+// 切替
 function switchCamera() {
-
-    if (videoDevices.length <= 1) {
-        alert('カメラ1個しかない');
-        return;
-    }
+    if (videoDevices.length <= 1) return;
 
     currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
-
     startStream(videoDevices[currentDeviceIndex].deviceId);
 }
 
-// deviceIdで起動
+// ストリーム開始
 function startStream(deviceId) {
 
     navigator.mediaDevices.getUserMedia({
@@ -119,17 +131,27 @@ function startStream(deviceId) {
     })
     .then(newStream => {
 
-        // 前のカメラ停止
         if (videoElement.srcObject) {
             videoElement.srcObject.getTracks().forEach(track => track.stop());
         }
 
         videoElement.srcObject = newStream;
         videoElement.play();
-    })
-    .catch(err => {
-        alert(err);
+
+        startPoseLoop(); // ← 🔥 これ必須
     });
 }
+
+// 🔥 毎フレーム骨格解析
+function startPoseLoop() {
+
+    async function loop() {
+        await pose.send({ image: videoElement });
+        requestAnimationFrame(loop);
+    }
+
+    loop();
+}
 </script>
+
 @endsection
