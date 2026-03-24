@@ -54,126 +54,82 @@ button {
 
 <script>
 let videoElement;
-let canvasElement;
-let canvasCtx;
-let pose;
-let cameraInstance;
-
+let stream;
 let videoDevices = [];
 let currentDeviceIndex = 0;
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
-
     videoElement = document.getElementById('camera');
-    canvasElement = document.getElementById('canvas');
-    canvasCtx = canvasElement.getContext('2d');
-
-    pose = new Pose({
-        locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
-        }
-    });
-
-    pose.setOptions({
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-    });
-
-    pose.onResults(results => {
-        if (!results.poseLandmarks) return;
-
-        canvasElement.width = videoElement.videoWidth;
-        canvasElement.height = videoElement.videoHeight;
-
-        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS);
-        drawLandmarks(canvasCtx, results.poseLandmarks);
-    });
 });
 
+// ① 最初は外カメで起動
+async function startCamera() {
+
+    // まず外カメで起動（これ重要）
+    stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+    });
+
+    videoElement.srcObject = stream;
+    videoElement.play();
+
+    // ② ここで初めてカメラ一覧取得
+    await loadDevices();
+}
+
 // カメラ一覧取得
-async function getCameras() {
+async function loadDevices() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     videoDevices = devices.filter(d => d.kind === 'videoinput');
 
-    console.log('カメラ一覧:', videoDevices);
-}
+    console.log(videoDevices);
 
-// カメラ起動
-async function startCamera() {
-
-    await getCameras();
-
-    if (videoDevices.length === 0) {
-        alert('カメラが見つかりません');
-        return;
-    }
-
-    // 外カメっぽいの探す
-    const backCamera = videoDevices.find(d =>
+    // 外カメを特定
+    const backIndex = videoDevices.findIndex(d =>
         d.label.toLowerCase().includes('back') ||
         d.label.toLowerCase().includes('rear')
     );
 
-    if (backCamera) {
-        currentDeviceIndex = videoDevices.indexOf(backCamera);
-    } else {
-        currentDeviceIndex = videoDevices.length - 1;
+    if (backIndex !== -1) {
+        currentDeviceIndex = backIndex;
     }
+}
+
+// 切り替え
+function switchCamera() {
+
+    if (videoDevices.length <= 1) {
+        alert('カメラ1個しかない');
+        return;
+    }
+
+    currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
 
     startStream(videoDevices[currentDeviceIndex].deviceId);
 }
 
-// ストリーム開始
+// deviceIdで起動
 function startStream(deviceId) {
 
     navigator.mediaDevices.getUserMedia({
-        video: {
-            deviceId: { exact: deviceId }
-        },
+        video: { deviceId: { exact: deviceId } },
         audio: false
     })
-    .then(stream => {
+    .then(newStream => {
 
         // 前のカメラ停止
         if (videoElement.srcObject) {
             videoElement.srcObject.getTracks().forEach(track => track.stop());
         }
 
-        videoElement.srcObject = stream;
+        videoElement.srcObject = newStream;
         videoElement.play();
-
-        if (cameraInstance) {
-            cameraInstance.stop();
-        }
-
-        cameraInstance = new Camera(videoElement, {
-            onFrame: async () => {
-                await pose.send({ image: videoElement });
-            },
-            width: 640,
-            height: 480
-        });
-
-        cameraInstance.start();
     })
     .catch(err => {
-        alert(err.name + ": " + err.message);
+        alert(err);
     });
 }
-
-// カメラ切替
-function switchCamera() {
-    if (videoDevices.length <= 1) return;
-
-    currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
-
-    startStream(videoDevices[currentDeviceIndex].deviceId);
-}
 </script>
-
 @endsection
