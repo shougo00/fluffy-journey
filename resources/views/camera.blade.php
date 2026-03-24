@@ -25,7 +25,7 @@ canvas {
     position: absolute;
     top: 0;
     left: 0;
-    pointer-events: none; /* ← クリック貫通 */
+    pointer-events: none;
 }
 
 button {
@@ -36,7 +36,7 @@ button {
 </style>
 
 <div class="camera-wrapper">
-    <h2>カメラ＋骨格検出</h2>
+    <h2>カメラ＋骨格検出（完全版）</h2>
 
     <div class="video-container">
         <video id="camera" autoplay playsinline></video>
@@ -44,7 +44,7 @@ button {
     </div>
 
     <button onclick="startCamera()">カメラ起動</button>
-    <button onclick="switchCamera()">内外カメラ切替</button>
+    <button onclick="switchCamera()">カメラ切替</button>
 </div>
 
 <!-- MediaPipe -->
@@ -58,7 +58,9 @@ let canvasElement;
 let canvasCtx;
 let pose;
 let cameraInstance;
-let currentFacing = 'environment'; // 外カメスタート
+
+let videoDevices = [];
+let currentDeviceIndex = 0;
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
@@ -93,16 +95,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// カメラ起動
-function startCamera() {
-    startStream(currentFacing);
+// カメラ一覧取得
+async function getCameras() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+    console.log('カメラ一覧:', videoDevices);
 }
 
-// カメラ開始処理（共通）
-function startStream(facingMode) {
+// カメラ起動
+async function startCamera() {
+
+    await getCameras();
+
+    if (videoDevices.length === 0) {
+        alert('カメラが見つかりません');
+        return;
+    }
+
+    // 外カメっぽいの探す
+    const backCamera = videoDevices.find(d =>
+        d.label.toLowerCase().includes('back') ||
+        d.label.toLowerCase().includes('rear')
+    );
+
+    if (backCamera) {
+        currentDeviceIndex = videoDevices.indexOf(backCamera);
+    } else {
+        currentDeviceIndex = videoDevices.length - 1;
+    }
+
+    startStream(videoDevices[currentDeviceIndex].deviceId);
+}
+
+// ストリーム開始
+function startStream(deviceId) {
 
     navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facingMode },
+        video: {
+            deviceId: { exact: deviceId }
+        },
         audio: false
     })
     .then(stream => {
@@ -115,7 +147,6 @@ function startStream(facingMode) {
         videoElement.srcObject = stream;
         videoElement.play();
 
-        // MediaPipe停止→再起動
         if (cameraInstance) {
             cameraInstance.stop();
         }
@@ -135,10 +166,13 @@ function startStream(facingMode) {
     });
 }
 
-// カメラ切り替え
+// カメラ切替
 function switchCamera() {
-    currentFacing = (currentFacing === 'environment') ? 'user' : 'environment';
-    startStream(currentFacing);
+    if (videoDevices.length <= 1) return;
+
+    currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
+
+    startStream(videoDevices[currentDeviceIndex].deviceId);
 }
 </script>
 
