@@ -5,42 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-.camera-wrapper {
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.video-container {
-    position: relative;
-}
-
-video, canvas {
-    width: 100%;
-    border-radius: 10px;
-}
-
-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-}
-
-button {
-    margin-top: 8px;
-    padding: 10px 15px;
-}
-
-#videoList img {
-    width: 120px;
-    height: 90px;
-    object-fit: cover;
-}
+.camera-wrapper { max-width: 600px; margin: 0 auto; text-align: center; }
+.video-container { position: relative; }
+video, canvas { width: 100%; border-radius: 10px; }
+canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+button { margin-top: 8px; padding: 10px 15px; }
+#videoList img { width:120px; height:90px; object-fit:cover; }
 </style>
 
 <div class="camera-wrapper">
-    <h2>弓道カメラ（完全版）</h2>
+    <h2>弓道AIカメラ（完全版）</h2>
 
     <div class="video-container">
         <video id="camera" autoplay playsinline></video>
@@ -54,29 +28,22 @@ button {
     <button onclick="stopRecording()">録画停止</button>
 
     <h3>録画一覧</h3>
-    <div id="videoList" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+    <div id="videoList" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
 
     <h3>再生</h3>
-    <video id="player" controls></video>
+    <video id="player" controls playsinline></video>
 </div>
 
-<!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 
 <script>
-let videoElement;
-let canvasElement;
-let canvasCtx;
-let pose;
-
-let videoDevices = [];
-let currentDeviceIndex = 0;
+let videoElement, canvasElement, canvasCtx, pose;
+let videoDevices = [], currentDeviceIndex = 0;
+let isPoseRunning = false;
 
 // 録画
-let mediaRecorder;
-let recordedChunks = [];
-let isRecording = false;
+let mediaRecorder, recordedChunks = [], isRecording = false;
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -91,23 +58,23 @@ document.addEventListener('DOMContentLoaded', () => {
     pose.setOptions({
         modelComplexity: 1,
         smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
+        minDetectionConfidence: 0.3, // ← 安定化
         minTrackingConfidence: 0.5
     });
 
     pose.onResults(results => {
 
+        if (!videoElement.videoWidth) return;
+
         canvasElement.width = videoElement.videoWidth;
         canvasElement.height = videoElement.videoHeight;
 
-        // カメラ映像描画
-        canvasCtx.drawImage(videoElement, 0, 0,
-            canvasElement.width,
-            canvasElement.height
-        );
+        // 映像
+        canvasCtx.drawImage(videoElement, 0, 0);
 
         if (!results.poseLandmarks) return;
 
+        // 骨格
         drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS);
         drawLandmarks(canvasCtx, results.poseLandmarks);
     });
@@ -123,9 +90,17 @@ async function startCamera() {
     });
 
     videoElement.srcObject = stream;
-    videoElement.play();
+
+    await new Promise(resolve => {
+        videoElement.onloadedmetadata = () => {
+            videoElement.play();
+            resolve();
+        };
+    });
 
     await loadDevices();
+
+    isPoseRunning = false;
     startPoseLoop();
 }
 
@@ -155,24 +130,40 @@ function startStream(deviceId) {
         video: { deviceId: { exact: deviceId } },
         audio: false
     })
-    .then(stream => {
+    .then(async stream => {
 
         if (videoElement.srcObject) {
             videoElement.srcObject.getTracks().forEach(track => track.stop());
         }
 
         videoElement.srcObject = stream;
-        videoElement.play();
 
+        await new Promise(resolve => {
+            videoElement.onloadedmetadata = () => {
+                videoElement.play();
+                resolve();
+            };
+        });
+
+        isPoseRunning = false;
         startPoseLoop();
     });
 }
 
 function startPoseLoop() {
+
+    if (isPoseRunning) return;
+    isPoseRunning = true;
+
     async function loop() {
-        await pose.send({ image: videoElement });
+
+        if (videoElement.readyState >= 2) {
+            await pose.send({ image: videoElement });
+        }
+
         requestAnimationFrame(loop);
     }
+
     loop();
 }
 
@@ -180,14 +171,9 @@ function startPoseLoop() {
 
 function startRecording() {
 
-    if (!canvasElement) {
-        alert('canvasなし');
-        return;
-    }
+    const canvasStream = canvasElement.captureStream(30);
 
     recordedChunks = [];
-
-    const canvasStream = canvasElement.captureStream(30);
 
     let options = { mimeType: 'video/webm' };
     if (!MediaRecorder.isTypeSupported('video/webm')) {
@@ -196,7 +182,7 @@ function startRecording() {
 
     try {
         mediaRecorder = new MediaRecorder(canvasStream, options);
-    } catch (e) {
+    } catch {
         alert('録画非対応');
         return;
     }
@@ -208,7 +194,6 @@ function startRecording() {
     mediaRecorder.onstop = () => {
         const blob = new Blob(recordedChunks, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);
-
         createThumbnail(url);
     };
 
@@ -218,16 +203,13 @@ function startRecording() {
 
 function stopRecording() {
 
-    if (!mediaRecorder || !isRecording) {
-        alert('録画してない');
-        return;
-    }
+    if (!mediaRecorder || !isRecording) return;
 
     mediaRecorder.stop();
     isRecording = false;
 }
 
-// ===== サムネ生成 =====
+// ===== サムネ（スマホ安定版） =====
 
 function createThumbnail(videoUrl) {
 
@@ -235,14 +217,11 @@ function createThumbnail(videoUrl) {
     video.src = videoUrl;
     video.muted = true;
     video.playsInline = true;
-
-    // iPhone対策
     video.setAttribute('playsinline', '');
     video.setAttribute('muted', '');
 
     video.addEventListener('loadeddata', () => {
 
-        // 🔥 一瞬再生してフレームを取得
         video.play().then(() => {
 
             setTimeout(() => {
@@ -259,7 +238,6 @@ function createThumbnail(videoUrl) {
                 const img = document.createElement('img');
                 img.src = canvas.toDataURL();
                 img.style.cursor = 'pointer';
-                img.style.border = '1px solid #ccc';
 
                 img.onclick = () => {
                     const player = document.getElementById('player');
@@ -270,12 +248,9 @@ function createThumbnail(videoUrl) {
 
                 document.getElementById('videoList').prepend(img);
 
-            }, 200); // ← 少し待つのがポイント
+            }, 200);
 
-        }).catch(() => {
-            console.log('autoplay blocked');
-        });
-
+        }).catch(()=>{});
     });
 }
 </script>
