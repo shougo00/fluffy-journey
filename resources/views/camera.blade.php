@@ -7,22 +7,60 @@
 <style>
 .camera-wrapper { max-width: 600px; margin: 0 auto; text-align: center; }
 .video-container { position: relative; }
-video, canvas { width: 100%; border-radius: 10px; }
-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
-button { margin-top: 8px; padding: 10px 15px; }
-#videoList img { width:120px; height:90px; object-fit:cover; }
+
+video, canvas {
+    width: 100%;
+    border-radius: 10px;
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+button {
+    margin-top: 8px;
+    padding: 10px 15px;
+}
+
+/* 🔴 録画インジケータ */
+#recordingIndicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: red;
+    font-weight: bold;
+    font-size: 18px;
+    display: none;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.2; }
+    100% { opacity: 1; }
+}
+
+/* サムネ */
+#videoList img {
+    width:120px;
+    height:90px;
+    object-fit:cover;
+}
 </style>
 
 <div class="camera-wrapper">
-    <h2>弓道AIカメラ（完全版）</h2>
+    <h2>弓道AIカメラ</h2>
 
     <div class="video-container">
         <video id="camera" autoplay playsinline></video>
         <canvas id="canvas"></canvas>
+        <div id="recordingIndicator">● REC</div>
     </div>
 
     <button onclick="startCamera()">カメラ起動</button>
-    <button onclick="switchCamera()">切替</button>
     <br>
     <button onclick="startRecording()">録画開始</button>
     <button onclick="stopRecording()">録画停止</button>
@@ -39,7 +77,6 @@ button { margin-top: 8px; padding: 10px 15px; }
 
 <script>
 let videoElement, canvasElement, canvasCtx, pose;
-let videoDevices = [], currentDeviceIndex = 0;
 let isPoseRunning = false;
 
 // 録画
@@ -58,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pose.setOptions({
         modelComplexity: 1,
         smoothLandmarks: true,
-        minDetectionConfidence: 0.3, // ← 安定化
+        minDetectionConfidence: 0.3,
         minTrackingConfidence: 0.5
     });
 
@@ -69,19 +106,16 @@ document.addEventListener('DOMContentLoaded', () => {
         canvasElement.width = videoElement.videoWidth;
         canvasElement.height = videoElement.videoHeight;
 
-        // 映像
         canvasCtx.drawImage(videoElement, 0, 0);
 
         if (!results.poseLandmarks) return;
 
-        // 骨格
         drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS);
         drawLandmarks(canvasCtx, results.poseLandmarks);
     });
 });
 
-// ===== カメラ =====
-
+// ===== カメラ（外カメ固定） =====
 async function startCamera() {
 
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -98,58 +132,11 @@ async function startCamera() {
         };
     });
 
-    await loadDevices();
-
     isPoseRunning = false;
     startPoseLoop();
 }
 
-async function loadDevices() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    videoDevices = devices.filter(d => d.kind === 'videoinput');
-
-    const backIndex = videoDevices.findIndex(d =>
-        d.label.toLowerCase().includes('back') ||
-        d.label.toLowerCase().includes('rear')
-    );
-
-    if (backIndex !== -1) currentDeviceIndex = backIndex;
-}
-
-function switchCamera() {
-
-    if (videoDevices.length <= 1) return;
-
-    currentDeviceIndex = (currentDeviceIndex + 1) % videoDevices.length;
-    startStream(videoDevices[currentDeviceIndex].deviceId);
-}
-
-function startStream(deviceId) {
-
-    navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: deviceId } },
-        audio: false
-    })
-    .then(async stream => {
-
-        if (videoElement.srcObject) {
-            videoElement.srcObject.getTracks().forEach(track => track.stop());
-        }
-
-        videoElement.srcObject = stream;
-
-        await new Promise(resolve => {
-            videoElement.onloadedmetadata = () => {
-                videoElement.play();
-                resolve();
-            };
-        });
-
-        isPoseRunning = false;
-        startPoseLoop();
-    });
-}
-
+// ===== 骨格ループ =====
 function startPoseLoop() {
 
     if (isPoseRunning) return;
@@ -167,9 +154,11 @@ function startPoseLoop() {
     loop();
 }
 
-// ===== 録画（骨格付き） =====
-
+// ===== 録画 =====
 function startRecording() {
+
+    const indicator = document.getElementById('recordingIndicator');
+    indicator.style.display = 'block';
 
     const canvasStream = canvasElement.captureStream(30);
 
@@ -201,7 +190,11 @@ function startRecording() {
     isRecording = true;
 }
 
+// 停止
 function stopRecording() {
+
+    const indicator = document.getElementById('recordingIndicator');
+    indicator.style.display = 'none';
 
     if (!mediaRecorder || !isRecording) return;
 
@@ -210,13 +203,13 @@ function stopRecording() {
 }
 
 // ===== サムネ（スマホ安定版） =====
-
 function createThumbnail(videoUrl) {
 
     const video = document.createElement('video');
     video.src = videoUrl;
     video.muted = true;
     video.playsInline = true;
+
     video.setAttribute('playsinline', '');
     video.setAttribute('muted', '');
 
