@@ -173,6 +173,9 @@
             <li class="nav-item">
                 <a class="nav-link active" href="{{ route('dashboard') }}"> 的中履歴</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ route('camera') }}"> カメラ</a>
+            </li>
         </ul>
 
         <ul class="navbar-nav ms-auto align-items-center">
@@ -239,6 +242,10 @@
             <li class="nav-item mb-2">
                 <a class="nav-link" href="{{ route('dashboard') }}">的中履歴</a>
             </li>
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="{{ route('camera') }}">カメラ</a>
+            </li>
+
 
             @auth
                 <li class="nav-item mb-2">
