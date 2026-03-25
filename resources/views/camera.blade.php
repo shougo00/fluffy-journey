@@ -236,32 +236,45 @@ function createThumbnail(videoUrl) {
     video.muted = true;
     video.playsInline = true;
 
-    // 🔥 重要：読み込み後にフレーム取得
-    video.addEventListener('loadedmetadata', () => {
-        video.currentTime = 0.1; // 少し進める
-    });
+    // iPhone対策
+    video.setAttribute('playsinline', '');
+    video.setAttribute('muted', '');
 
-    video.addEventListener('seeked', () => {
+    video.addEventListener('loadeddata', () => {
 
-        const canvas = document.createElement('canvas');
-        canvas.width = 160;
-        canvas.height = 120;
+        // 🔥 一瞬再生してフレームを取得
+        video.play().then(() => {
 
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            setTimeout(() => {
 
-        const img = document.createElement('img');
-        img.src = canvas.toDataURL();
-        img.style.cursor = 'pointer';
-        img.style.border = '1px solid #ccc';
+                video.pause();
 
-        img.onclick = () => {
-            const player = document.getElementById('player');
-            player.src = videoUrl;
-            player.play();
-        };
+                const canvas = document.createElement('canvas');
+                canvas.width = 160;
+                canvas.height = 120;
 
-        document.getElementById('videoList').appendChild(img);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL();
+                img.style.cursor = 'pointer';
+                img.style.border = '1px solid #ccc';
+
+                img.onclick = () => {
+                    const player = document.getElementById('player');
+                    player.src = videoUrl;
+                    player.load();
+                    player.play().catch(()=>{});
+                };
+
+                document.getElementById('videoList').prepend(img);
+
+            }, 200); // ← 少し待つのがポイント
+
+        }).catch(() => {
+            console.log('autoplay blocked');
+        });
 
     });
 }
