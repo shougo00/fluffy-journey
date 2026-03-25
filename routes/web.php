@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\Admin\NewsController;
-
+use App\Http\Controllers\VideoController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -56,6 +56,9 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/camera', function () {
     return view('camera');
     })->name('camera');
+
+    Route::post('/video/upload', [VideoController::class, 'upload']);
+    Route::get('/video/list', [VideoController::class, 'list']);
 
 });
 

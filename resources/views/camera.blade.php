@@ -3,6 +3,7 @@
 @section('content')
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
 .camera-wrapper { max-width: 600px; margin: 0 auto; text-align: center; }
@@ -25,7 +26,6 @@ button {
     padding: 10px 15px;
 }
 
-/* 🔴 録画インジケータ */
 #recordingIndicator {
     position: absolute;
     top: 10px;
@@ -43,7 +43,6 @@ button {
     100% { opacity: 1; }
 }
 
-/* サムネ */
 #videoList img {
     width:120px;
     height:90px;
@@ -72,6 +71,7 @@ button {
     <video id="player" controls playsinline></video>
 </div>
 
+<!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 
@@ -87,6 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
     videoElement = document.getElementById('camera');
     canvasElement = document.getElementById('canvas');
     canvasCtx = canvasElement.getContext('2d');
+
+    loadVideos(); // 🔥 サーバーから読み込み
 
     pose = new Pose({
         locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -115,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ===== カメラ（外カメ固定） =====
+// ===== カメラ =====
 async function startCamera() {
 
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -157,8 +159,7 @@ function startPoseLoop() {
 // ===== 録画 =====
 function startRecording() {
 
-    const indicator = document.getElementById('recordingIndicator');
-    indicator.style.display = 'block';
+    document.getElementById('recordingIndicator').style.display = 'block';
 
     const canvasStream = canvasElement.captureStream(30);
 
@@ -180,10 +181,27 @@ function startRecording() {
         if (e.data.size > 0) recordedChunks.push(e.data);
     };
 
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
+
+        document.getElementById('recordingIndicator').style.display = 'none';
+
         const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        createThumbnail(url);
+
+        const formData = new FormData();
+        formData.append('video', blob, 'video.webm');
+
+        // 🔥 Laravelへ送信
+        const res = await fetch('/video/upload', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        const data = await res.json();
+
+        createThumbnail(data.url);
     };
 
     mediaRecorder.start();
@@ -193,16 +211,24 @@ function startRecording() {
 // 停止
 function stopRecording() {
 
-    const indicator = document.getElementById('recordingIndicator');
-    indicator.style.display = 'none';
-
     if (!mediaRecorder || !isRecording) return;
 
     mediaRecorder.stop();
     isRecording = false;
 }
 
-// ===== サムネ（スマホ安定版） =====
+// ===== 一覧取得 =====
+async function loadVideos() {
+
+    const res = await fetch('/video/list');
+    const videos = await res.json();
+
+    videos.forEach(v => {
+        createThumbnail(v.url);
+    });
+}
+
+// ===== サムネ生成（スマホ対応） =====
 function createThumbnail(videoUrl) {
 
     const video = document.createElement('video');
