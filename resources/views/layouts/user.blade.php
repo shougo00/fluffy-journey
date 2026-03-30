@@ -174,6 +174,15 @@
                 <a class="nav-link active" href="{{ route('dashboard') }}"> 的中履歴</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link active" href="{{ route('groups') }}"> グループ設定</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="#"
+                onclick="goGroupRecord()">
+                    グループ記録
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link active" href="{{ route('camera') }}"> カメラ</a>
             </li>
         </ul>
@@ -243,6 +252,15 @@
                 <a class="nav-link" href="{{ route('dashboard') }}">的中履歴</a>
             </li>
             <li class="nav-item mb-2">
+                <a class="nav-link" href="{{ route('groups') }}">グループ設定</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="#"
+                onclick="goGroupRecord()">
+                    グループ記録
+                </a>
+            </li>
+            <li class="nav-item mb-2">
                 <a class="nav-link" href="{{ route('camera') }}">カメラ</a>
             </li>
 
@@ -287,4 +305,24 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+<script>
+function goGroupRecord() {
+
+    @auth
+        let groupId = {{ Auth::user()->groups->first()->id ?? 'null' }};
+
+        if (!groupId) {
+            alert('グループに参加していません');
+            return;
+        }
+
+        // 遷移
+        window.location.href = `/group/${groupId}/records`;
+
+    @else
+        alert('ログインしてください');
+    @endauth
+
+}
+</script>
 </html>

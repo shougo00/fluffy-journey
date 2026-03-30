@@ -8,7 +8,8 @@ use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\VideoController;
-
+use App\Http\Controllers\GroupController;
+use App\Http\Controllers\GroupRecordController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -57,9 +58,24 @@ Route::middleware([ 'verified'])->group(function () {
     return view('camera');
     })->name('camera');
 
-    Route::post('/video/upload', [VideoController::class, 'upload']);
-    Route::get('/video/list', [VideoController::class, 'list']);
+   Route::middleware('auth')->group(function () {
+    Route::get('/groups', [GroupController::class, 'index'])->name('groups');
+       
+    Route::get('/groups/create', [GroupController::class, 'create'])->name('groups.create');
+    Route::post('/groups', [GroupController::class, 'store'])->name('groups.store');
 
+    Route::get('/groups/join', [GroupController::class, 'joinForm'])->name('groups.join.form');
+    Route::post('/groups/join', [GroupController::class, 'join'])->name('groups.join');
+    });
+    Route::post('/groups/{group}/leave', [GroupController::class, 'leave'])->name('groups.leave');
+
+
+
+
+
+    Route::get('/group/{groupId}/records', [GroupRecordController::class, 'index'])->name('group.records');
+    Route::post('/group/{groupId}/add-tate', [GroupRecordController::class, 'addTate']);
+    Route::post('/group/shot/{id}', [GroupRecordController::class, 'updateShot']);
 });
 
 

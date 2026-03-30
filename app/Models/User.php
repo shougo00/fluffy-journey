@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+use App\Models\Group;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -57,6 +57,11 @@ class User extends Authenticatable
     public function avatar()
     {
         return $this->hasOne(Avatar::class);
+    }
+
+    public function groups()
+    {
+        return $this->belongsToMany(Group::class, 'group_user');
     }
 
 }
