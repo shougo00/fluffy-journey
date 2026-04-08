@@ -98,6 +98,16 @@
 
 <style>
 
+html, body {
+    height: 100%;
+    overflow: hidden; /* ←これ重要 */
+}
+.container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
 /* スクロール */
 .score-scroll {
     overflow: auto;
