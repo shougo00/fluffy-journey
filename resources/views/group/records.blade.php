@@ -105,7 +105,7 @@ html, body {
 
 /* スクロール */
 .score-scroll {
-    height: calc(94dvh - 120px); /* ←ここ重要 */
+    height: calc(93dvh - 120px); /* ←ここ重要 */
     overflow: auto;
 }
 
