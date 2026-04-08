@@ -1,8 +1,10 @@
+
 @extends('layouts.user')
 
 @section('content')
 
 <div class="container py-3">
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <h4>{{ $group->name }}（正規連）</h4>
@@ -16,12 +18,21 @@
 
     <div class="score-wrapper">
 
-        {{-- 立（下→上） --}}
+        <!-- ===== 上ヘッダー（的中数） ===== -->
+        <div class="score-header">
+            <div class="tate-label"></div>
+            @foreach($group->users as $user)
+                <div class="score" data-user-id="{{ $user->id }}">
+                    {{ $user->hits ?? 0 }}中
+                </div>
+            @endforeach
+        </div>
+
+        <!-- ===== 本体 ===== -->
         <div class="tate-area">
             @foreach($tates as $tateNo)
                 <div class="tate-row">
 
-                    {{-- ★立番号固定 --}}
                     <div class="tate-label">{{ $tateNo }}</div>
 
                     @foreach($group->users as $user)
@@ -43,9 +54,9 @@
                                 <div class="shot-btn
                                     {{ $shot?->result=='hit'?'shot-hit':'' }}
                                     {{ $shot?->result=='miss'?'shot-miss':'' }}
-                                    {{ !$shot || $shot->result==null?'shot-none':'' }}
-                                    {{ $i==4 ? 'shot-divider' : '' }}"
+                                    {{ !$shot || $shot->result==null?'shot-none':'' }}"
                                     data-id="{{ $shot->id ?? '' }}"
+                                    data-user="{{ $user->id }}"
                                     data-result="{{ $shot?->result ?? '' }}"
                                     onclick="updateShot(this)">
 
@@ -57,6 +68,12 @@
                                         ＋
                                     @endif
                                 </div>
+
+                                <!-- 4射ごとに線 -->
+                                @if($i == 4 && !$loop->parent->first)
+                                    <div class="shot-separator"></div>
+                                @endif
+
                             @endfor
 
                         </div>
@@ -66,9 +83,8 @@
             @endforeach
         </div>
 
-        {{-- ★名前フッター固定 --}}
+        <!-- ===== 名前 ===== -->
         <div class="name-row">
-            <div class="tate-label"></div>
             @foreach($group->users as $user)
                 <div class="name">{{ $user->name }}</div>
             @endforeach
@@ -77,61 +93,74 @@
     </div>
 
 </div>
+
 </div>
 
 <style>
 
-/* ===== スクロール ===== */
+/* スクロール */
 .score-scroll {
     overflow: auto;
-    max-height: 75vh; /* ★縦スクロール発動 */
-    -webkit-overflow-scrolling: touch;
+    max-height: 75vh;
 }
 
-/* 横に広げる */
+/* 横幅 */
 .score-wrapper {
-    display: flex;
-    flex-direction: column;
     min-width: max-content;
 }
 
-/* ===== 下→上 ===== */
+/* 上ヘッダー */
+.score-header {
+    display: flex;
+    border-bottom: 2px solid #000;
+    padding-bottom: 5px;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 20;
+    
+}
+
+/* 的中 */
+.score {
+    width: 65px;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* 下→上 */
 .tate-area {
     display: flex;
     flex-direction: column-reverse;
 }
 
-/* ===== 行 ===== */
+/* 行 */
 .tate-row {
     display: flex;
     align-items: center;
     margin-bottom: 10px;
 }
 
-/* ===== 立番号（左固定） ===== */
+/* 立番号 */
 .tate-label {
     width: 40px;
     text-align: center;
     font-weight: bold;
-    flex-shrink: 0;
-
     position: sticky;
     left: 0;
     background: white;
     z-index: 5;
 }
-
-/* ===== ユーザー列 ===== */
+/* 列 */
 .user-column {
     display: flex;
     flex-direction: column;
     gap: 6px;
     width: 65px;
     align-items: center;
-    flex-shrink: 0;
 }
 
-/* ===== ボタン ===== */
+/* ボタン */
 .shot-btn {
     width: 55px;
     height: 55px;
@@ -146,70 +175,47 @@
 
 .shot-btn i { font-size:30px; }
 
-/* ○ */
 .shot-hit i { color:#ff3b30; }
-.fa-circle { font-weight:400 !important; }
+.shot-miss i { color:#007aff; }
 
-/* × */
-.shot-miss i { color:#007aff; font-size:34px; }
-
-/* 未入力 */
 .shot-none {
     border:2px dashed #ccc;
     color:#bbb;
 }
 
-/* 4射区切り */
-.shot-divider {
-    margin-bottom:12px;
-    padding-bottom:6px;
-    border-bottom:2px solid #eee;
+/* 区切り線 */
+.shot-separator {
+    width: 80%;
+    height: 1px;
+    background: #ddd;
 }
 
-/* ===== 名前フッター固定 ===== */
+/* 名前 */
 .name-row {
     display: flex;
     border-top: 2px solid #000;
-    padding-top: 5px;
-
     position: sticky;
     bottom: 0;
     background: white;
-    z-index: 10;
-
-    transform: translateX(-20px); /* 微調整 */
-    box-shadow: 0 -2px 6px rgba(0,0,0,0.1); /* 浮かせる */
+    padding-left: 40px; 
 }
 
 .name {
     width: 65px;
     text-align: center;
     writing-mode: vertical-rl;
-    flex-shrink: 0;
     font-weight: bold;
+    transform: translateX(-18px);
 }
 
-/* ===== スマホ最適化 ===== */
+/* スマホ */
 @media (max-width: 600px) {
-
-    .user-column {
-        width: 55px;
-    }
-
-    .name {
-        width: 55px;
-        font-size: 12px;
-    }
-
-    .shot-btn {
-        width: 48px;
-        height: 48px;
-    }
-
-    .shot-btn i {
-        font-size: 24px;
-    }
+    .user-column { width: 55px; }
+    .score, .name { width: 55px; font-size: 12px; }
+    .shot-btn { width: 48px; height: 48px; }
+    .shot-btn i { font-size: 24px; }
 }
+
 
 </style>
 
@@ -219,9 +225,12 @@ function updateShot(el){
     let id = el.dataset.id;
     if(!id) return;
 
+    let userId = el.dataset.user;
+
     let current = el.dataset.result;
     let next = current==='hit'?'miss':current==='miss'?'':'hit';
 
+    // UI変更
     el.dataset.result = next;
 
     el.innerHTML =
@@ -237,6 +246,18 @@ function updateShot(el){
         next==='miss'?'shot-miss':'shot-none'
     );
 
+    // 的中数更新
+    const scoreEl = document.querySelector(`.score[data-user-id="${userId}"]`);
+    if(scoreEl){
+        let currentHits = parseInt(scoreEl.innerText) || 0;
+
+        if(current !== 'hit' && next === 'hit') currentHits++;
+        if(current === 'hit' && next !== 'hit') currentHits--;
+
+        scoreEl.innerText = currentHits + '中';
+    }
+
+    // DB保存
     fetch(`/group/shot/${id}`,{
         method:'POST',
         headers:{

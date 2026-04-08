@@ -16,6 +16,7 @@ class GroupRecordController extends Controller
 
         $userIds = $group->users->pluck('id');
 
+        // ===== 記録取得 =====
         $records = Record::with('shots')
             ->whereIn('user_id', $userIds)
             ->where('date', $date)
@@ -23,14 +24,29 @@ class GroupRecordController extends Controller
             ->get()
             ->groupBy('user_id');
 
-        // ★ 昇順にする（これ重要）
+        // ===== 立一覧（昇順） =====
         $tates = Record::whereIn('user_id', $userIds)
             ->where('date', $date)
             ->where('practice_type', 'official')
             ->pluck('tate_no')
             ->unique()
-            ->sort() // ←ここ
+            ->sort()
             ->values();
+
+        // ===== ★的中数（ここ追加） =====
+        foreach ($group->users as $user) {
+
+            $shots = $records[$user->id] ?? collect();
+
+            $hits = $shots
+                ->flatMap(function ($record) {
+                    return $record->shots;
+                })
+                ->where('result', 'hit')
+                ->count();
+
+            $user->hits = $hits;
+        }
 
         return view('group.records', compact('group','records','tates','date'));
     }
