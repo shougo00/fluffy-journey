@@ -62,6 +62,7 @@ button {
     <button onclick="startCamera()">カメラ起動</button><br>
     <button onclick="startRecording()">録画開始</button>
     <button onclick="stopRecording()">録画停止</button>
+    <button onclick="shareVideo()">保存 / 共有</button>
 
     <h3>録画一覧</h3>
     <div id="videoList" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
@@ -79,6 +80,7 @@ let isPoseRunning = false;
 
 // 録画
 let mediaRecorder, recordedChunks = [], isRecording = false;
+let lastBlob = null;
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -186,19 +188,9 @@ function startRecording() {
 
         const blob = new Blob(recordedChunks, { type: 'video/webm' });
 
-        // ===== 🔥 スマホ保存 =====
-        const url = URL.createObjectURL(blob);
+        lastBlob = blob; // 🔥 共有用に保持
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'kyudo_' + Date.now() + '.webm';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-
-        URL.revokeObjectURL(url);
-
-        // ===== 🔥 サーバー保存 =====
+        // ===== サーバー保存 =====
         const formData = new FormData();
         formData.append('video', blob, 'video.webm');
 
@@ -212,7 +204,6 @@ function startRecording() {
             });
 
             const data = await res.json();
-
             createThumbnail(data.url);
 
         } catch {
@@ -231,6 +222,45 @@ function stopRecording() {
 
     mediaRecorder.stop();
     isRecording = false;
+}
+
+// ===== 🔥 共有（iPhone対応） =====
+async function shareVideo() {
+
+    if (!lastBlob) {
+        alert('録画がありません');
+        return;
+    }
+
+    const file = new File([lastBlob], 'kyudo.webm', { type: 'video/webm' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+
+        try {
+            await navigator.share({
+                files: [file],
+                title: '弓道動画'
+            });
+            return;
+        } catch (e) {
+            console.log('共有キャンセル or 失敗');
+        }
+    }
+
+    // fallback
+    const url = URL.createObjectURL(lastBlob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kyudo_' + Date.now() + '.webm';
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+
+    alert('共有非対応のためダウンロードしました');
 }
 
 // ===== 一覧取得 =====
