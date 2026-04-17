@@ -59,8 +59,7 @@ button {
         <div id="recordingIndicator">● REC</div>
     </div>
 
-    <button onclick="startCamera()">カメラ起動</button>
-    <br>
+    <button onclick="startCamera()">カメラ起動</button><br>
     <button onclick="startRecording()">録画開始</button>
     <button onclick="stopRecording()">録画停止</button>
 
@@ -71,7 +70,6 @@ button {
     <video id="player" controls playsinline></video>
 </div>
 
-<!-- MediaPipe -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 
@@ -88,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     canvasElement = document.getElementById('canvas');
     canvasCtx = canvasElement.getContext('2d');
 
-    loadVideos(); // 🔥 サーバーから読み込み
+    loadVideos();
 
     pose = new Pose({
         locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -156,7 +154,7 @@ function startPoseLoop() {
     loop();
 }
 
-// ===== 録画 =====
+// ===== 録画開始 =====
 function startRecording() {
 
     document.getElementById('recordingIndicator').style.display = 'block';
@@ -165,9 +163,10 @@ function startRecording() {
 
     recordedChunks = [];
 
-    let options = { mimeType: 'video/webm' };
-    if (!MediaRecorder.isTypeSupported('video/webm')) {
-        options = {};
+    let options = { mimeType: 'video/webm;codecs=vp9' };
+
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm' };
     }
 
     try {
@@ -187,28 +186,45 @@ function startRecording() {
 
         const blob = new Blob(recordedChunks, { type: 'video/webm' });
 
+        // ===== 🔥 スマホ保存 =====
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'kyudo_' + Date.now() + '.webm';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        URL.revokeObjectURL(url);
+
+        // ===== 🔥 サーバー保存 =====
         const formData = new FormData();
         formData.append('video', blob, 'video.webm');
 
-        // 🔥 Laravelへ送信
-        const res = await fetch('/video/upload', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        });
+        try {
+            const res = await fetch('/video/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
 
-        const data = await res.json();
+            const data = await res.json();
 
-        createThumbnail(data.url);
+            createThumbnail(data.url);
+
+        } catch {
+            console.log('サーバー保存失敗');
+        }
     };
 
     mediaRecorder.start();
     isRecording = true;
 }
 
-// 停止
+// ===== 録画停止 =====
 function stopRecording() {
 
     if (!mediaRecorder || !isRecording) return;
@@ -220,24 +236,21 @@ function stopRecording() {
 // ===== 一覧取得 =====
 async function loadVideos() {
 
-    const res = await fetch('/video/list');
-    const videos = await res.json();
+    try {
+        const res = await fetch('/video/list');
+        const videos = await res.json();
 
-    videos.forEach(v => {
-        createThumbnail(v.url);
-    });
+        videos.forEach(v => createThumbnail(v.url));
+    } catch {}
 }
 
-// ===== サムネ生成（スマホ対応） =====
+// ===== サムネ =====
 function createThumbnail(videoUrl) {
 
     const video = document.createElement('video');
     video.src = videoUrl;
     video.muted = true;
     video.playsInline = true;
-
-    video.setAttribute('playsinline', '');
-    video.setAttribute('muted', '');
 
     video.addEventListener('loadeddata', () => {
 
