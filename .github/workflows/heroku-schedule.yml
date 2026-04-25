@@ -18,9 +18,7 @@ jobs:
         run: echo "HEROKU_API_KEY=${{ secrets.HEROKU_API_KEY }}" >> $GITHUB_ENV
 
       - name: Stop Dyno
-        if: github.event.schedule == '0 14 * * *'
         run: heroku ps:scale web=0 -a ${{ secrets.HEROKU_APP_NAME }}
 
       - name: Start Dyno
-        if: github.event.schedule == '0 0 * * *'
         run: heroku ps:scale web=1 -a ${{ secrets.HEROKU_APP_NAME }}
