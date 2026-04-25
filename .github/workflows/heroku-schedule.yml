@@ -1,8 +1,8 @@
-name: Control Heroku Dyno
-
 on:
   schedule:
-    - cron: '0 14 * * *'
+    # 毎日 0:15 に停止（JST）
+    - cron: '15 15 * * *'
+    # 毎日 9:00 に起動（JST）
     - cron: '0 0 * * *'
   workflow_dispatch:
 
@@ -18,7 +18,9 @@ jobs:
         run: echo "HEROKU_API_KEY=${{ secrets.HEROKU_API_KEY }}" >> $GITHUB_ENV
 
       - name: Stop Dyno
+        if: github.event.schedule == '15 15 * * *'
         run: heroku ps:scale web=0 -a ${{ secrets.HEROKU_APP_NAME }}
 
       - name: Start Dyno
+        if: github.event.schedule == '0 0 * * *'
         run: heroku ps:scale web=1 -a ${{ secrets.HEROKU_APP_NAME }}
