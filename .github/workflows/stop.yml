@@ -2,7 +2,7 @@ name: Stop Heroku TEST
 
 on:
   schedule:
-    - cron: '5 0 * * *'  # 9:05 JST
+    - cron: '* * * * *'  # 9:05 JST
 
 jobs:
   stop:
