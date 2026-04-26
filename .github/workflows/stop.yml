@@ -3,7 +3,7 @@ name: Stop Heroku TEST
 on:
   workflow_dispatch:
   schedule:
-    - cron: '* * * * *'
+    - cron: '0 11 * * *'  # 毎日20:00 JST
 
 jobs:
   stop:

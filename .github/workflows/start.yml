@@ -2,7 +2,7 @@ name: Start Heroku TEST
 
 on:
   schedule:
-    - cron: '10 0 * * *'  # 9:10 JST
+    - cron: '0 23 * * *'  # 毎日8:00 JST
 
 jobs:
   start:
