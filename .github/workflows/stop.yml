@@ -1,8 +1,9 @@
 name: Stop Heroku TEST
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '* * * * *'  # 9:05 JST
+    - cron: '* * * * *'
 
 jobs:
   stop:
