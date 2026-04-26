@@ -1,6 +1,7 @@
 name: Start Heroku TEST
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 23 * * *'  # 毎日8:00 JST
 
