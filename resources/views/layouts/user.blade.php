@@ -180,6 +180,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link active" href="#"
+                onclick="goAttendance()">
+                    出欠確認
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link active" href="{{ route('groups') }}"> グループ設定</a>
             </li>
             <li class="nav-item">
@@ -258,6 +264,12 @@
                 </a>
             </li>
             <li class="nav-item mb-2">
+                <a class="nav-link" href="#"
+                onclick="goAttendance()">
+                    出欠確認
+                </a>
+            </li>
+            <li class="nav-item mb-2">
                 <a class="nav-link" href="{{ route('groups') }}">グループ設定</a>
             </li>
             <li class="nav-item mb-2">
@@ -306,6 +318,23 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 <script>
+function goAttendance() {
+
+    @auth
+        let groupId = {{ Auth::user()->groups->first()->id ?? 'null' }};
+
+        if (!groupId) {
+            alert('グループに参加していません');
+            return;
+        }
+
+        window.location.href = `/group/${groupId}/attendance`;
+
+    @else
+        alert('ログインしてください');
+    @endauth
+}
+
 function goGroupRecord() {
 
     @auth

@@ -13,6 +13,8 @@ class GroupRecordController extends Controller
 {
     public function index(Request $request, $groupId)
     {
+        $this->checkGroupAccess($groupId);
+
         $group = Group::with('users')->findOrFail($groupId);
         $date = $request->date ?? date('Y-m-d');
 
@@ -67,7 +69,6 @@ class GroupRecordController extends Controller
             ->sort()
             ->values();
 
-        // 既に立がある場合、後から追加・変更された人にも不足分を作る
         if ($users->isNotEmpty() && $tates->isNotEmpty()) {
             foreach ($tates as $tateNo) {
                 foreach ($users as $user) {
@@ -111,6 +112,8 @@ class GroupRecordController extends Controller
 
     public function addTate(Request $request, $groupId)
     {
+        $this->checkGroupAccess($groupId);
+
         $group = Group::with('users')->findOrFail($groupId);
         $date = $request->date ?? date('Y-m-d');
 
@@ -141,7 +144,6 @@ class GroupRecordController extends Controller
 
         $userIds = $users->pluck('id');
 
-        // 全員共通の次の立番号にする
         $maxTate = Record::whereIn('user_id', $userIds)
             ->where('date', $date)
             ->where('practice_type', 'official')
@@ -158,11 +160,33 @@ class GroupRecordController extends Controller
 
     public function updateShot(Request $request, $id)
     {
-        $shot = Shot::findOrFail($id);
+        $shot = Shot::with('record')->findOrFail($id);
+
+        $record = $shot->record;
+
+        $groupId = Lineup::where('date', $record->date)
+            ->whereHas('members', function ($q) use ($record) {
+                $q->where('user_id', $record->user_id);
+            })
+            ->value('group_id');
+
+        if ($groupId) {
+            $this->checkGroupAccess($groupId);
+        }
+
         $shot->result = $request->result ?: null;
         $shot->save();
 
         return response()->json(['success' => true]);
+    }
+
+    private function checkGroupAccess($groupId): void
+    {
+        $user = auth()->user();
+
+        if (!$user || !$user->groups()->where('groups.id', $groupId)->exists()) {
+            abort(403, 'このグループにはアクセスできません');
+        }
     }
 
     private function syncLineupMembers(Lineup $lineup, Group $group): void

@@ -1,33 +1,53 @@
 @extends('layouts.user')
 
 @section('content')
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <div class="container py-3">
 
 <h4>{{ $group->name }}｜立順設定</h4>
 
-<form method="GET" action="/group/{{ $group->id }}/lineup" class="mb-3 d-flex gap-2">
-    <input type="date" name="date" value="{{ $date }}" class="form-control">
-    <button class="btn btn-outline-primary">表示</button>
+<form method="GET" action="/group/{{ $group->id }}/lineup" class="mb-3 text-center">
+    <div class="d-flex justify-content-center align-items-center gap-3">
+        <a href="/group/{{ $group->id }}/lineup?date={{ \Carbon\Carbon::parse($date)->subDay()->format('Y-m-d') }}"
+           class="btn btn-outline-secondary">＜</a>
+
+        <input type="date"
+               name="date"
+               value="{{ $date }}"
+               onchange="this.form.submit()"
+               class="form-control text-center"
+               style="max-width:180px;">
+
+        <a href="/group/{{ $group->id }}/lineup?date={{ \Carbon\Carbon::parse($date)->addDay()->format('Y-m-d') }}"
+           class="btn btn-outline-secondary">＞</a>
+    </div>
 </form>
 
 <div style="display:flex; gap:10px; margin-bottom:10px; justify-content:flex-end; flex-wrap:wrap;">
     <select id="tateSize" class="form-select" style="width:120px;">
-        <option value="3" {{ $lineup->tate_size == 3 ? 'selected' : '' }}>3人立</option>
-        <option value="4" {{ $lineup->tate_size == 4 ? 'selected' : '' }}>4人立</option>
-        <option value="5" {{ $lineup->tate_size == 5 ? 'selected' : '' }}>5人立</option>
+        @for($i = 3; $i <= 15; $i++)
+            <option value="{{ $i }}" {{ $lineup->tate_size == $i ? 'selected' : '' }}>
+                {{ $i }}人立
+            </option>
+        @endfor
     </select>
-
-    <button type="button" class="btn btn-secondary" onclick="randomize()">ランダム</button>
-    <button type="button" class="btn btn-primary" onclick="save()">保存</button>
+    <button type="button" class="btn btn-secondary" onclick="randomize()">ランダム配置</button>
     <a href="/group/{{ $group->id }}/records?date={{ $date }}" class="btn btn-success">記録へ</a>
 </div>
 
-<p class="text-muted text-end">右端が1番です。未配置の人は記録画面に出ません。</p>
+
+
+<div id="saveStatus" class="text-end text-muted mb-2" style="font-size:13px;">
+    保存済み
+</div>
 
 <div id="grid" class="grid"></div>
 
 <hr>
+
+<p class="text-muted text-end">
+スマホ：長押しで欠席 / PC：ダブルクリックで欠席
+</p>
 
 <h5>未配置</h5>
 <div id="pool" class="pool"></div>
@@ -61,7 +81,9 @@
 }
 
 .cell.drag-over,
-.pool.drag-over {
+.pool.drag-over,
+.cell.tap-target,
+.pool.tap-target {
     background:#eef6ff;
     border-color:#0d6efd;
 }
@@ -82,11 +104,22 @@
     cursor:grab;
     user-select:none;
     text-align:center;
+    touch-action: manipulation;
+}
+
+.member.selected {
+    background:#0d6efd;
+    color:white;
+    outline:3px solid rgba(13,110,253,.25);
 }
 
 .member.absent {
     background:#999;
     color:white;
+}
+
+.member.absent.selected {
+    background:#555;
 }
 
 .pool {
@@ -106,11 +139,16 @@
 
 <script>
 let dragged = null;
+let selectedMember = null;
+let saveTimer = null;
+let longPressTimer = null;
+let longPressed = false;
 
 const grid = document.getElementById('grid');
 const pool = document.getElementById('pool');
 const tateSelect = document.getElementById('tateSize');
 const source = document.getElementById('membersSource');
+const saveStatus = document.getElementById('saveStatus');
 
 function makeMember(sourceEl) {
     const div = document.createElement('div');
@@ -124,6 +162,7 @@ function makeMember(sourceEl) {
     div.dataset.id = sourceEl.dataset.id;
     div.textContent = sourceEl.textContent.trim();
 
+    // ===== PCドラッグ =====
     div.addEventListener('dragstart', () => {
         dragged = div;
         setTimeout(() => div.style.opacity = '0.5', 0);
@@ -135,11 +174,115 @@ function makeMember(sourceEl) {
         clearDragOver();
     });
 
-    div.addEventListener('click', () => {
+    // ===== スマホ長押し（欠席） =====
+    div.addEventListener('touchstart', () => {
+        longPressed = false;
+        longPressTimer = setTimeout(() => {
+            longPressed = true;
+            div.classList.toggle('absent');
+            selectMember(null);
+            autoSave();
+        }, 600);
+    }, { passive: true });
+
+    div.addEventListener('touchend', () => {
+        clearTimeout(longPressTimer);
+    });
+
+    div.addEventListener('touchmove', () => {
+        clearTimeout(longPressTimer);
+    });
+
+    // ===== PCダブルクリック（欠席）←これ追加 =====
+    div.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
         div.classList.toggle('absent');
+        selectMember(null);
+        autoSave();
+    });
+
+    // ===== タップ（選択・入れ替え） =====
+    div.addEventListener('click', (e) => {
+        e.stopPropagation();
+
+        if (longPressed) {
+            longPressed = false;
+            return;
+        }
+
+        // 入れ替え
+        if (selectedMember && selectedMember !== div) {
+            swapMembers(selectedMember, div);
+            selectMember(null);
+            autoSave();
+            return;
+        }
+
+        // 選択ON/OFF
+        if (selectedMember === div) {
+            selectMember(null);
+        } else {
+            selectMember(div);
+        }
     });
 
     return div;
+}
+
+function swapMembers(a, b) {
+    const aParent = a.parentElement;
+    const bParent = b.parentElement;
+
+    const aNext = a.nextSibling;
+    const bNext = b.nextSibling;
+
+    if (aParent === bParent) {
+        bParent.insertBefore(a, bNext);
+        aParent.insertBefore(b, aNext);
+    } else {
+        aParent.insertBefore(b, aNext);
+        bParent.insertBefore(a, bNext);
+    }
+}
+
+function selectMember(member) {
+    document.querySelectorAll('.member.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+
+    selectedMember = member;
+
+    document.querySelectorAll('.cell, .pool').forEach(el => {
+        el.classList.remove('tap-target');
+    });
+
+    if (member) {
+        member.classList.add('selected');
+        document.querySelectorAll('.cell').forEach(el => el.classList.add('tap-target'));
+        pool.classList.add('tap-target');
+    }
+}
+
+function moveSelectedTo(target) {
+    if (!selectedMember) return;
+
+    if (target.classList.contains('cell')) {
+        const existing = target.querySelector('.member');
+
+        if (existing && existing !== selectedMember) {
+            // 空いてないマスなら入れ替え
+            swapMembers(selectedMember, existing);
+        } else {
+            target.appendChild(selectedMember);
+        }
+    }
+
+    if (target.id === 'pool') {
+        pool.appendChild(selectedMember);
+    }
+
+    selectMember(null);
+    autoSave();
 }
 
 function getCellsRightToLeft() {
@@ -181,6 +324,10 @@ function renderGrid() {
         num.className = 'cell-number';
         cell.appendChild(num);
 
+        cell.addEventListener('click', () => {
+            moveSelectedTo(cell);
+        });
+
         cell.addEventListener('dragover', e => {
             e.preventDefault();
             clearDragOver();
@@ -193,12 +340,15 @@ function renderGrid() {
             if (!dragged) return;
 
             const existing = cell.querySelector('.member');
+
             if (existing && existing !== dragged) {
-                pool.appendChild(existing);
+                swapMembers(dragged, existing);
+            } else {
+                cell.appendChild(dragged);
             }
 
-            cell.appendChild(dragged);
             clearDragOver();
+            autoSave();
         });
 
         grid.appendChild(cell);
@@ -236,11 +386,9 @@ function initMembers(reset = false) {
     });
 }
 
-function collectAll() {
-    getRealMembers().forEach(member => {
-        pool.appendChild(member);
-    });
-}
+pool.addEventListener('click', () => {
+    moveSelectedTo(pool);
+});
 
 pool.addEventListener('dragover', e => {
     e.preventDefault();
@@ -256,15 +404,16 @@ pool.addEventListener('drop', e => {
     }
 
     clearDragOver();
+    autoSave();
 });
 
 tateSelect.addEventListener('change', () => {
     initMembers(true);
+    autoSave();
 });
 
 function randomize() {
-    collectAll();
-
+    // 未配置にいる人だけ対象
     const members = Array.from(pool.querySelectorAll('.member'))
         .filter(member => !member.classList.contains('absent'));
 
@@ -276,24 +425,34 @@ function randomize() {
         [members[i], members[j]] = [members[j], members[i]];
     }
 
-    document.querySelectorAll('#grid .cell').forEach(cell => {
-        const num = cell.querySelector('.cell-number');
-        cell.innerHTML = '';
-        if (num) cell.appendChild(num);
-    });
-
-    const cells = getCellsRightToLeft();
+    // 空いているマスだけ取得
+    const emptyCells = getCellsRightToLeft()
+        .filter(cell => !cell.querySelector('.member'));
 
     members.forEach((member, index) => {
-        if (cells[index]) cells[index].appendChild(member);
+        if (emptyCells[index]) {
+            emptyCells[index].appendChild(member);
+        }
     });
 
     absentMembers.forEach(member => {
         pool.appendChild(member);
     });
+
+    autoSave();
 }
 
-function save() {
+function autoSave() {
+    saveStatus.innerText = '保存中...';
+
+    clearTimeout(saveTimer);
+
+    saveTimer = setTimeout(() => {
+        save(false);
+    }, 400);
+}
+
+function save(showAlert = false) {
     let list = [];
     const cells = getCellsRightToLeft();
 
@@ -329,11 +488,16 @@ function save() {
         })
     })
     .then(res => res.json())
-    .then(() => alert('保存OK'))
-    .catch(() => alert('保存に失敗しました'));
+    .then(() => {
+        saveStatus.innerText = '保存済み';
+        if (showAlert) alert('保存OK');
+    })
+    .catch(() => {
+        saveStatus.innerText = '保存失敗';
+        if (showAlert) alert('保存に失敗しました');
+    });
 }
 
 initMembers(false);
 </script>
-
 @endsection

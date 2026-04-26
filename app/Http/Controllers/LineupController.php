@@ -9,13 +9,13 @@ use App\Models\LineupMember;
 
 class LineupController extends Controller
 {
-    // ===== 画面表示 =====
     public function index(Request $request, $groupId)
     {
+        $this->checkGroupAccess($groupId);
+
         $group = Group::with('users')->findOrFail($groupId);
         $date = $request->date ?? date('Y-m-d');
 
-        // ===== 立順取得 or 作成 =====
         $lineup = Lineup::firstOrCreate(
             [
                 'group_id' => $groupId,
@@ -26,13 +26,70 @@ class LineupController extends Controller
             ]
         );
 
-        // ===== 既存メンバー取得 =====
+        $this->syncLineupMembers($lineup, $group);
+
         $members = $lineup->members()->with('user')->get();
 
-        // ===== 既に登録済みユーザーID =====
+        return view('lineup.index', compact('group', 'lineup', 'members', 'date'));
+    }
+
+    public function save(Request $request, $lineupId)
+    {
+        $lineup = Lineup::findOrFail($lineupId);
+
+        $this->checkGroupAccess($lineup->group_id);
+
+        foreach ($request->members as $m) {
+            LineupMember::where('id', $m['id'])
+                ->where('lineup_id', $lineup->id)
+                ->update([
+                    'position' => $m['position'],
+                    'is_absent' => $m['absent']
+                ]);
+        }
+
+        $lineup->update([
+            'tate_size' => $request->tate_size
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function random($lineupId)
+    {
+        $lineup = Lineup::findOrFail($lineupId);
+
+        $this->checkGroupAccess($lineup->group_id);
+
+        $members = LineupMember::where('lineup_id', $lineupId)
+            ->where('is_absent', false)
+            ->get()
+            ->shuffle()
+            ->values();
+
+        foreach ($members as $i => $m) {
+            $m->update([
+                'position' => $i + 1
+            ]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    private function checkGroupAccess($groupId): void
+    {
+        $user = auth()->user();
+
+        if (!$user || !$user->groups()->where('groups.id', $groupId)->exists()) {
+            abort(403, 'このグループにはアクセスできません');
+        }
+    }
+
+    private function syncLineupMembers(Lineup $lineup, Group $group): void
+    {
+        $members = $lineup->members()->get();
         $existingUserIds = $members->pluck('user_id')->toArray();
 
-        // ===== 不足メンバーを追加（これが重要） =====
         foreach ($group->users as $user) {
             if (!in_array($user->id, $existingUserIds)) {
                 LineupMember::create([
@@ -43,45 +100,5 @@ class LineupController extends Controller
                 ]);
             }
         }
-
-        // ===== 再取得（重要） =====
-        $members = $lineup->members()->with('user')->get();
-
-        return view('lineup.index', compact('group','lineup','members','date'));
-    }
-
-    // ===== 保存 =====
-    public function save(Request $request, $lineupId)
-    {
-        foreach($request->members as $m){
-            LineupMember::where('id', $m['id'])->update([
-                'position' => $m['position'],
-                'is_absent' => $m['absent']
-            ]);
-        }
-
-        Lineup::where('id',$lineupId)->update([
-            'tate_size' => $request->tate_size
-        ]);
-
-        return response()->json(['ok'=>true]);
-    }
-
-    // ===== ランダム =====
-    public function random($lineupId)
-    {
-        $members = LineupMember::where('lineup_id',$lineupId)
-            ->where('is_absent',false)
-            ->get()
-            ->shuffle()
-            ->values();
-
-        foreach($members as $i=>$m){
-            $m->update([
-                'position' => $i+1
-            ]);
-        }
-
-        return response()->json(['ok'=>true]);
     }
 }

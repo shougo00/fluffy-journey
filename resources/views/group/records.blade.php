@@ -1,7 +1,7 @@
 @extends('layouts.user')
 
 @section('content')
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <div class="container py-3">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,10 +13,32 @@
         立順
     </a>
 </div>
+<form method="GET" action="/group/{{ $group->id }}/records" class="mb-3 text-center">
 
-<form method="GET" action="/group/{{ $group->id }}/records" class="mb-3 d-flex gap-2">
-    <input type="date" name="date" value="{{ $date }}" class="form-control">
-    <button class="btn btn-outline-primary">表示</button>
+    <div class="d-flex justify-content-center align-items-center gap-3">
+
+        {{-- 前日 --}}
+        <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($date)->subDay()->format('Y-m-d') }}"
+           class="btn btn-outline-secondary">
+            ＜
+        </a>
+
+        {{-- カレンダー（中央） --}}
+        <input type="date"
+               name="date"
+               value="{{ $date }}"
+               onchange="this.form.submit()"
+               class="form-control text-center"
+               style="max-width:180px;">
+
+        {{-- 翌日 --}}
+        <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($date)->addDay()->format('Y-m-d') }}"
+           class="btn btn-outline-secondary">
+            ＞
+        </a>
+
+    </div>
+
 </form>
 
 <form method="POST" action="/group/{{ $group->id }}/add-tate" class="mb-3">
