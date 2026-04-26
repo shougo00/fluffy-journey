@@ -1,0 +1,13 @@
+name: Start Heroku TEST
+
+on:
+  schedule:
+    - cron: '10 0 * * *'  # 9:10 JST
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl https://cli-assets.heroku.com/install.sh | sh
+      - run: echo "HEROKU_API_KEY=${{ secrets.HEROKU_API_KEY }}" >> $GITHUB_ENV
+      - run: heroku ps:scale web=1 -a ${{ secrets.HEROKU_APP_NAME }}
