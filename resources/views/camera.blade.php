@@ -3,317 +3,184 @@
 @section('content')
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
-.camera-wrapper { max-width: 600px; margin: 0 auto; text-align: center; }
-.video-container { position: relative; }
+.video-container { position: relative; max-width: 600px; margin: auto; }
+video, canvas { width: 100%; border-radius: 10px; }
+canvas { position:absolute; top:0; left:0; }
 
-video, canvas {
-    width: 100%;
-    border-radius: 10px;
-}
-
-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-}
-
-button {
-    margin-top: 8px;
-    padding: 10px 15px;
-}
-
-#recordingIndicator {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    color: red;
-    font-weight: bold;
-    font-size: 18px;
-    display: none;
-    animation: blink 1s infinite;
-}
-
-@keyframes blink {
-    0% { opacity: 1; }
-    50% { opacity: 0.2; }
-    100% { opacity: 1; }
-}
-
-#videoList img {
-    width:120px;
-    height:90px;
-    object-fit:cover;
+#phase {
+    position:absolute;
+    top:10px;
+    right:10px;
+    font-size:20px;
+    color:yellow;
+    background:rgba(0,0,0,0.6);
+    padding:10px;
+    border-radius:10px;
 }
 </style>
 
-<div class="camera-wrapper">
-    <h2>弓道AIカメラ</h2>
-
-    <div class="video-container">
-        <video id="camera" autoplay playsinline></video>
-        <canvas id="canvas"></canvas>
-        <div id="recordingIndicator">● REC</div>
-    </div>
-
-    <button onclick="startCamera()">カメラ起動</button><br>
-    <button onclick="startRecording()">録画開始</button>
-    <button onclick="stopRecording()">録画停止</button>
-    <button onclick="shareVideo()">保存 / 共有</button>
-
-    <h3>録画一覧</h3>
-    <div id="videoList" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
-
-    <h3>再生</h3>
-    <video id="player" controls playsinline></video>
+<div class="video-container">
+    <video id="camera" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div id="phase">待機</div>
 </div>
 
+<button onclick="startCamera()">カメラ起動</button>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 
 <script>
-let videoElement, canvasElement, canvasCtx, pose;
-let isPoseRunning = false;
+let video, canvas, ctx, pose;
+let latestLandmarks = null;
+let prevLandmarks = null;
 
-// 録画
-let mediaRecorder, recordedChunks = [], isRecording = false;
-let lastBlob = null;
+let phase = "待機";
+let isProcessing = false;
+let lastPoseTime = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    videoElement = document.getElementById('camera');
-    canvasElement = document.getElementById('canvas');
-    canvasCtx = canvasElement.getContext('2d');
-
-    loadVideos();
+    video = document.getElementById('camera');
+    canvas = document.getElementById('canvas');
+    ctx = canvas.getContext('2d');
 
     pose = new Pose({
-        locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
     });
 
     pose.setOptions({
-        modelComplexity: 1,
-        smoothLandmarks: true,
-        minDetectionConfidence: 0.3,
-        minTrackingConfidence: 0.5
+        modelComplexity: 0,
+        smoothLandmarks: true
     });
 
-    pose.onResults(results => {
-
-        if (!videoElement.videoWidth) return;
-
-        canvasElement.width = videoElement.videoWidth;
-        canvasElement.height = videoElement.videoHeight;
-
-        canvasCtx.drawImage(videoElement, 0, 0);
-
-        if (!results.poseLandmarks) return;
-
-        drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS);
-        drawLandmarks(canvasCtx, results.poseLandmarks);
+    pose.onResults(res => {
+        latestLandmarks = res.poseLandmarks;
     });
 });
 
 // ===== カメラ =====
 async function startCamera() {
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false
-    });
-
-    videoElement.srcObject = stream;
-
-    await new Promise(resolve => {
-        videoElement.onloadedmetadata = () => {
-            videoElement.play();
-            resolve();
-        };
-    });
-
-    isPoseRunning = false;
-    startPoseLoop();
-}
-
-// ===== 骨格ループ =====
-function startPoseLoop() {
-
-    if (isPoseRunning) return;
-    isPoseRunning = true;
-
-    async function loop() {
-
-        if (videoElement.readyState >= 2) {
-            await pose.send({ image: videoElement });
-        }
-
-        requestAnimationFrame(loop);
-    }
-
+    const stream = await navigator.mediaDevices.getUserMedia({ video:true });
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
     loop();
 }
 
-// ===== 録画開始 =====
-function startRecording() {
+// ===== メインループ =====
+function loop(time){
 
-    document.getElementById('recordingIndicator').style.display = 'block';
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    const canvasStream = canvasElement.captureStream(30);
+    ctx.drawImage(video,0,0);
 
-    recordedChunks = [];
+    // AIは軽く
+    if (time - lastPoseTime > 100 && !isProcessing) {
+        isProcessing = true;
+        lastPoseTime = time;
 
-    let options = { mimeType: 'video/webm;codecs=vp9' };
-
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/webm' };
+        pose.send({ image: video }).finally(()=>{
+            isProcessing = false;
+        });
     }
 
-    try {
-        mediaRecorder = new MediaRecorder(canvasStream, options);
-    } catch {
-        alert('録画非対応');
-        return;
-    }
+    if (latestLandmarks) {
 
-    mediaRecorder.ondataavailable = e => {
-        if (e.data.size > 0) recordedChunks.push(e.data);
-    };
+        const lm = latestLandmarks;
 
-    mediaRecorder.onstop = async () => {
+        // ===== 骨格 =====
+        const lines = [
+            [11,13],[13,15],
+            [12,14],[14,16],
+            [11,12],
+            [11,23],[12,24],[23,24],
+            [23,25],[25,27],[27,31],
+            [24,26],[26,28],[28,32]
+        ];
 
-        document.getElementById('recordingIndicator').style.display = 'none';
+        ctx.strokeStyle = "lime";
+        ctx.lineWidth = 2;
 
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        lines.forEach(([a,b]) => {
+            const p1 = lm[a];
+            const p2 = lm[b];
+            if (!p1 || !p2) return;
 
-        lastBlob = blob; // 🔥 共有用に保持
+            ctx.beginPath();
+            ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
+            ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+            ctx.stroke();
+        });
 
-        // ===== サーバー保存 =====
-        const formData = new FormData();
-        formData.append('video', blob, 'video.webm');
-
-        try {
-            const res = await fetch('/video/upload', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            });
-
-            const data = await res.json();
-            createThumbnail(data.url);
-
-        } catch {
-            console.log('サーバー保存失敗');
+        // ===== 動き量 =====
+        let move = 0;
+        if (prevLandmarks) {
+            move =
+                Math.abs(lm[15].x - prevLandmarks[15].x) +
+                Math.abs(lm[16].x - prevLandmarks[16].x);
         }
-    };
+        prevLandmarks = JSON.parse(JSON.stringify(lm));
 
-    mediaRecorder.start();
-    isRecording = true;
-}
+        // ===== 判定 =====
+        const leftHand = lm[15];
+        const rightHand = lm[16];
+        const leftShoulder = lm[11];
+        const rightShoulder = lm[12];
 
-// ===== 録画停止 =====
-function stopRecording() {
+        const handY = (leftHand.y + rightHand.y) / 2;
+        const shoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+        const hipY = (lm[23].y + lm[24].y) / 2;
 
-    if (!mediaRecorder || !isRecording) return;
+        const handDist = Math.abs(leftHand.x - rightHand.x);
 
-    mediaRecorder.stop();
-    isRecording = false;
-}
+        const leftArmAngle = calcAngle(lm[11], lm[13], lm[15]);
 
-// ===== 🔥 共有（iPhone対応） =====
-async function shareVideo() {
+        // ===== 八節判定（改良版） =====
 
-    if (!lastBlob) {
-        alert('録画がありません');
-        return;
-    }
+        if (handY > hipY + 0.05) {
+            phase = "待機";
+        }
 
-    const file = new File([lastBlob], 'kyudo.webm', { type: 'video/webm' });
+        else if (handY > hipY - 0.05 && handY < hipY + 0.05) {
+            phase = "胴作り";
+        }
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        else if (handY < shoulderY) {
+            phase = "打起こし";
+        }
 
-        try {
-            await navigator.share({
-                files: [file],
-                title: '弓道動画'
-            });
-            return;
-        } catch (e) {
-            console.log('共有キャンセル or 失敗');
+        else if (leftArmAngle > 155 && handDist < 0.3) {
+            phase = "第三";
+        }
+
+        else if (handDist > 0.3 && move > 0.01) {
+            phase = "引き分け";
+        }
+
+        else if (handDist > 0.4 && move < 0.005) {
+            phase = "会";
+        }
+
+        document.getElementById('phase').innerText = phase;
+
+        // ===== フェーズ強調 =====
+        if (phase === "会") {
+            ctx.strokeStyle = "red";
         }
     }
 
-    // fallback
-    const url = URL.createObjectURL(lastBlob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'kyudo_' + Date.now() + '.webm';
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    URL.revokeObjectURL(url);
-
-    alert('共有非対応のためダウンロードしました');
+    requestAnimationFrame(loop);
 }
 
-// ===== 一覧取得 =====
-async function loadVideos() {
-
-    try {
-        const res = await fetch('/video/list');
-        const videos = await res.json();
-
-        videos.forEach(v => createThumbnail(v.url));
-    } catch {}
-}
-
-// ===== サムネ =====
-function createThumbnail(videoUrl) {
-
-    const video = document.createElement('video');
-    video.src = videoUrl;
-    video.muted = true;
-    video.playsInline = true;
-
-    video.addEventListener('loadeddata', () => {
-
-        video.play().then(() => {
-
-            setTimeout(() => {
-
-                video.pause();
-
-                const canvas = document.createElement('canvas');
-                canvas.width = 160;
-                canvas.height = 120;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                const img = document.createElement('img');
-                img.src = canvas.toDataURL();
-                img.style.cursor = 'pointer';
-
-                img.onclick = () => {
-                    const player = document.getElementById('player');
-                    player.src = videoUrl;
-                    player.load();
-                    player.play().catch(()=>{});
-                };
-
-                document.getElementById('videoList').prepend(img);
-
-            }, 200);
-
-        }).catch(()=>{});
-    });
+// ===== 角度 =====
+function calcAngle(a,b,c){
+    const ab={x:a.x-b.x,y:a.y-b.y};
+    const cb={x:c.x-b.x,y:c.y-b.y};
+    const dot=ab.x*cb.x+ab.y*cb.y;
+    const mag=Math.sqrt(ab.x**2+ab.y**2)*Math.sqrt(cb.x**2+cb.y**2);
+    return Math.acos(dot/mag)*180/Math.PI;
 }
 </script>
 

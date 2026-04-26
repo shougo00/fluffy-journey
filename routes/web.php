@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\VideoController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupRecordController;
+use App\Http\Controllers\LineupController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -76,6 +77,10 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/group/{groupId}/records', [GroupRecordController::class, 'index'])->name('group.records');
     Route::post('/group/{groupId}/add-tate', [GroupRecordController::class, 'addTate']);
     Route::post('/group/shot/{id}', [GroupRecordController::class, 'updateShot']);
+
+    Route::get('/group/{id}/lineup',[LineupController::class,'index']); 
+    Route::post('/lineup/{id}/save',[LineupController::class,'save']); 
+    Route::post('/lineup/{id}/random',[LineupController::class,'random']);
 });
 
 
