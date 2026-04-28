@@ -517,14 +517,6 @@ html, body {
         padding-bottom: 1px;
     }
 
-    /* スマホだけ縮小 */
-    @media print and (max-width: 600px) {
-        .print-page {
-            transform: scale(0.8);
-            transform-origin: top center;
-            width: 125%;
-        }
-    }
 
     .print-page:last-child {
         page-break-after: auto;
