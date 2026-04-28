@@ -181,6 +181,12 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link active" href="#"
+                onclick="goGroupRecord()">
+                    グループ履歴
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="#"
                 onclick="goAttendance()">
                     出欠確認
                 </a>
@@ -261,6 +267,12 @@
                 <a class="nav-link" href="#"
                 onclick="goGroupRecord()">
                     グループ記録
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="#"
+                onclick="goGroupRecord()">
+                    グループ履歴
                 </a>
             </li>
             <li class="nav-item mb-2">

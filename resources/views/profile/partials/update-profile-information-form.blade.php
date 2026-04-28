@@ -45,6 +45,29 @@
                 </div>
             @endif
         </div>
+        <div class="mb-3">
+            <label class="form-label">試合区分</label>
+
+            <div>
+                <label class="me-3">
+                    <input type="radio" name="gender" value="male"
+                        {{ old('gender', $user->gender) === 'male' ? 'checked' : '' }}
+                        required>
+                    男子の部
+                </label>
+
+                <label>
+                    <input type="radio" name="gender" value="female"
+                        {{ old('gender', $user->gender) === 'female' ? 'checked' : '' }}
+                        required>
+                    女子の部
+                </label>
+            </div>
+
+            @error('gender')
+                <div class="text-danger">{{ $message }}</div>
+            @enderror
+        </div>
 
         <div class="d-flex align-items-center gap-3">
             <button type="submit" class="btn btn-primary">保存</button>

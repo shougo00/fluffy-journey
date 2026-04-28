@@ -37,7 +37,7 @@
 
                         <!-- メール -->
                         <div class="mb-3">
-                            <label class="form-label">メールアドレス ※名前＠Gmail.comで大丈夫です。本物は入れないで。
+                            <label class="form-label">メールアドレス ※学校のメール
                             </label>
                             <input type="email"
                                    name="email"
@@ -68,6 +68,28 @@
                                    name="password_confirmation"
                                    class="form-control"
                                    required>
+                        </div>
+
+                        <div class="mb-3">
+                        <label class="form-label">試合区分</label>
+
+                        <div>
+                            <label class="me-3">
+                                <input type="radio" name="gender" value="male"
+                                    {{ old('gender') == 'male' ? 'checked' : '' }} required>
+                                男子の部
+                            </label>
+
+                            <label>
+                                <input type="radio" name="gender" value="female"
+                                    {{ old('gender') == 'female' ? 'checked' : '' }}>
+                                女子の部
+                            </label>
+                        </div>
+
+                        @error('gender')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
                         </div>
 
                         <div class="d-grid">

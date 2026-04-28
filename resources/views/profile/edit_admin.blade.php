@@ -4,7 +4,7 @@
         <!-- アカウント情報の更新 -->
         <div class="card mb-4 shadow-sm">
             <div class="card-header">
-                <h5 class="mb-0">アカウント情報の更新</h5>
+                <h5 class="mb-0">アカウント情報の更新7</h5>
             </div>
             <div class="card-body">
                 <p class="text-muted mb-3">

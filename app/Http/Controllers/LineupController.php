@@ -22,7 +22,7 @@ class LineupController extends Controller
                 'date' => $date
             ],
             [
-                'tate_size' => 3
+                'tate_size' => 5
             ]
         );
 
@@ -100,5 +100,46 @@ class LineupController extends Controller
                 ]);
             }
         }
+    }
+    public function copyPrevious(Lineup $lineup)
+    {
+        $this->checkGroupAccess($lineup->group_id);
+
+        // 前回の「立順がセットされている日」を探す
+        $previous = Lineup::where('group_id', $lineup->group_id)
+            ->where('date', '<', $lineup->date)
+            ->whereHas('members', function ($q) {
+                $q->whereNotNull('position');
+            })
+            ->orderBy('date', 'desc')
+            ->first();
+
+        if (!$previous) {
+            return back()->with('error', 'コピーできる前回の立順がありません');
+        }
+
+        // 何人立だけ前回に合わせる
+        $lineup->update([
+            'tate_size' => $previous->tate_size,
+        ]);
+
+        $previousMembers = $previous->members()->get();
+
+        foreach ($previousMembers as $prevMember) {
+
+            $currentMember = LineupMember::where('lineup_id', $lineup->id)
+                ->where('user_id', $prevMember->user_id)
+                ->first();
+
+            if ($currentMember) {
+                // 立順だけコピー
+                // is_absent は変更しない
+                $currentMember->update([
+                    'position' => $prevMember->position,
+                ]);
+            }
+        }
+
+        return back()->with('success', '前回の立順をコピーしました');
     }
 }

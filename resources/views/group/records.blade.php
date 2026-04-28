@@ -9,9 +9,16 @@
 <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
     <h4>{{ $group->name }}（正規連）</h4>
 
-    <a href="/group/{{ $group->id }}/lineup?date={{ $date }}" class="btn btn-secondary">
-        立順
-    </a>
+    <div style="display:flex; gap:8px;">
+        <a href="/group/{{ $group->id }}/lineup?date={{ $date }}" class="btn btn-secondary">
+            立順
+        </a>
+
+        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+            印刷
+        </button>
+    </div>
+
 </div>
 <form method="GET" action="/group/{{ $group->id }}/records" class="mb-3 text-center">
 
@@ -156,6 +163,129 @@
 
 </div>
 </div>
+</div>
+
+{{-- 印刷専用レイアウト --}}
+<div class="print-only">
+
+@php
+    // 5立ごと
+    $printTatePages = collect($tates)->chunk(5);
+
+    // 1枚あたりの人数
+    // 見切れる場合は 8 → 7 にしてください
+    $printMemberPages = collect($lineupSlots)->chunk(18);
+@endphp
+
+@foreach($printTatePages as $pageTates)
+    @foreach($printMemberPages as $pageSlots)
+
+        <div class="print-page">
+
+            <div class="print-title">
+                {{ $group->name }}（正規連）<br>
+                {{ \Carbon\Carbon::parse($date)->locale('ja')->isoFormat('YYYY年M月D日（ddd）') }}
+            </div>
+
+            {{-- 上：このページの的中 --}}
+            <div class="print-score-header">
+                <div class="print-tate-label"></div>
+
+                @foreach($pageSlots as $slot)
+                    <div class="print-score {{ (($loop->index + 1) % $tateSize == 0) ? 'print-tate-border' : '' }}">
+                        @if(!$slot->is_empty)
+                            @php
+                                $user = $slot->user;
+                                $pageHitCount = 0;
+
+                                foreach ($pageTates as $printTateNo) {
+                                    $printRecord = ($records[$user->id] ?? collect())
+                                        ->where('tate_no', $printTateNo)
+                                        ->first();
+
+                                    if ($printRecord) {
+                                        $pageHitCount += $printRecord->shots
+                                            ->where('result', 'hit')
+                                            ->count();
+                                    }
+                                }
+                            @endphp
+
+                            {{ $pageHitCount }}中
+                        @else
+                            -
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- 中：記録 --}}
+            <div class="print-tate-area">
+                @foreach($pageTates as $tateNo)
+                    <div class="print-tate-row">
+                        <div class="print-tate-label">{{ $tateNo }}</div>
+
+                        @foreach($pageSlots as $slot)
+
+                            @if($slot->is_empty)
+
+                                <div class="print-user-column {{ (($loop->index + 1) % $tateSize == 0) ? 'print-tate-border' : '' }}">
+                                    @for($i=1;$i<=4;$i++)
+                                        <div class="print-shot"></div>
+                                    @endfor
+                                </div>
+
+                            @else
+
+                                @php
+                                    $user = $slot->user;
+                                    $userRecords = $records[$user->id] ?? collect();
+                                    $record = $userRecords->where('tate_no', $tateNo)->first();
+                                @endphp
+
+                                <div class="print-user-column {{ (($loop->index + 1) % $tateSize == 0) ? 'print-tate-border' : '' }}">
+                                    @for($i=1;$i<=4;$i++)
+                                        @php
+                                            $shot = $record
+                                                ? $record->shots->where('shot_no',$i)->first()
+                                                : null;
+                                        @endphp
+
+                                        <div class="print-shot">
+                                            @if($shot?->result=='hit')
+                                                ○
+                                            @elseif($shot?->result=='miss')
+                                                ×
+                                            @else
+
+                                            @endif
+                                        </div>
+                                    @endfor
+                                </div>
+
+                            @endif
+
+                        @endforeach
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- 下：名前 --}}
+            <div class="print-name-row">
+                <div class="print-name-spacer"></div>
+
+                @foreach($pageSlots as $slot)
+                    <div class="print-name {{ (($loop->index + 1) % $tateSize == 0) ? 'print-tate-border' : '' }}">
+                        {{ $slot->is_empty ? '空き' : $slot->user->name }}
+                    </div>
+                @endforeach
+            </div>
+
+        </div>
+
+    @endforeach
+@endforeach
+
 </div>
 
 <style>
@@ -340,9 +470,181 @@ html, body {
         padding-left: 4px;
     }
 }
+.print-only {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 8mm;
+    }
+
+    nav,
+    header,
+    footer,
+    .navbar,
+    .tabs,
+    .nav-tabs,
+    .btn,
+    form,
+    .score-scroll,
+    h4 {
+        display: none !important;
+    }
+
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    .container {
+        max-width: none !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .print-page {
+        page-break-after: always;
+        break-after: page;
+        overflow: hidden;
+        padding-bottom: 1px;
+    }
+
+    .print-page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+    }
+
+    .print-title {
+        text-align: center;
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 6px;
+        line-height: 1.4;
+    }
+
+    .print-score-header,
+    .print-tate-row,
+    .print-name-row {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 0 !important;
+    }
+
+    .print-tate-area {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 0 !important;
+    }
+
+    /* 上下の余計な線を削除（ここ重要） */
+    .print-score-header {
+        margin-bottom: 0;
+    }
+
+    .print-name-row {
+        margin-top: 0;
+    }
+
+    .print-tate-row {
+        margin-bottom: 0 !important;
+        align-items: stretch;
+    }
+
+    /* ===== マス（正方形＋大きい○×） ===== */
+    .print-shot {
+        width: 38px;
+        height: 38px;
+        border: 1px solid #333;
+        border-radius: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: bold;
+        line-height: 1;
+        box-sizing: border-box;
+    }
+
+    /* ===== 列 ===== */
+    .print-user-column {
+        width: 38px;
+        min-width: 38px;
+        display: flex;
+        flex-direction: column;
+        gap: 0 !important;
+        align-items: stretch;
+    }
+
+    /* ===== 総計（上） ===== */
+    .print-score {
+        width: 38px;
+        min-width: 38px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        box-sizing: border-box;
+        border: 1px solid #333;
+        border-top: 3px solid #000;
+        border-bottom: 3px solid #000;
+    }
+
+    /* ===== 名前（下） ===== */
+    .print-name {
+        width: 38px;
+        min-width: 38px;
+        height: 78px;
+        writing-mode: vertical-rl;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        box-sizing: border-box;
+        border: 1px solid #333;
+        border-top: 3px solid #000;
+        border-bottom: 3px solid #000;
+    }
+
+    /* ===== 立番号 ===== */
+    .print-tate-label {
+        width: 30px;
+        min-width: 30px;
+        border: 1px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        box-sizing: border-box;
+    }
+
+    /* ===== 左下スペース ===== */
+    .print-name-spacer {
+        width: 30px;
+        min-width: 30px;
+        height: 78px;
+        border-top: 3px solid #000;
+        border-bottom: 3px solid #000;
+        box-sizing: border-box;
+    }
+
+    /* ===== 立区切り（内側だけ） ===== */
+    .print-tate-border {
+        border-left: 2px solid #000;
+    }
+}
 </style>
 
 <script>
+    
 function updateShot(el){
 
     const id = el.dataset.id;
@@ -396,6 +698,14 @@ function updateShot(el){
         body: JSON.stringify({ result: next })
     });
 }
+function scrollRight() {
+    const el = document.querySelector('.score-scroll');
+    if (el) el.scrollLeft = el.scrollWidth;
+}
+
+window.addEventListener('load', () => {
+    setTimeout(scrollRight, 50);
+});
 </script>
 
 @endsection

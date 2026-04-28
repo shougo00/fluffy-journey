@@ -79,6 +79,7 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/group/{id}/lineup',[LineupController::class,'index']); 
     Route::post('/lineup/{id}/save',[LineupController::class,'save']); 
     Route::post('/lineup/{id}/random',[LineupController::class,'random']);
+    Route::post('/lineup/{lineup}/copy-previous', [LineupController::class, 'copyPrevious']);
     // 出欠ページ
    Route::get('/group/{groupId}/attendance', [AttendanceController::class, 'index']);
     Route::post('/group/{groupId}/attendance', [AttendanceController::class, 'save']);
