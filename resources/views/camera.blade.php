@@ -338,30 +338,6 @@ function updatePhase(m) {
     // 左手が肩より少し上
     // 右手が頭付近
     // 手幅が開いている
-    else if (currentPhase === "打起こし") {
-
-        let leftHandOutside = false;
-
-        if (leftTargetDirection) {
-            leftHandOutside = m.leftHandX < m.leftShoulderX - 0.10;
-        } else {
-            leftHandOutside = m.leftHandX > m.leftShoulderX + 0.10;
-        }
-
-        if (
-            m.leftElbowAngle > 145 &&
-            leftHandOutside &&
-            m.leftHandY < m.leftShoulderY - 0.02 &&
-            m.rightHandY < m.noseY + 0.12 &&
-            m.handWidth > 0.22
-        ) {
-            next();
-            save("第三", m);
-        }
-    }
-
-    // 第三 → 引き分け
-    // 右ひじ角度が狭くなり、右手が下がり、手幅がさらに広がる
     // 打起こし → 第三
     else if (currentPhase === "打起こし") {
 
@@ -380,6 +356,19 @@ function updatePhase(m) {
         ) {
             next();
             save("第三", m);
+        }
+    }
+
+    // 第三 → 引き分け
+    // 右ひじ角度が狭くなり、右手が下がり、手幅がさらに広がる
+    else if (currentPhase === "第三") {
+        if (
+            m.rightElbowAngle < 125 &&
+            m.rightHandDownMove > 0.002 &&
+            m.handWidth > 0.30
+        ) {
+            next();
+            save("引き分け", m);
         }
     }
 
