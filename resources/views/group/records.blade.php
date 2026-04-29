@@ -174,7 +174,7 @@
 
     // 1枚あたりの人数
     // 見切れる場合は 8 → 7 にしてください
-    $printMemberPages = collect($lineupSlots)->chunk(18);
+    $printMemberPages = collect($lineupSlots)->chunk(17);
 @endphp
 
 @foreach($printTatePages as $pageTates)
