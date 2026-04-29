@@ -62,7 +62,6 @@ button {
 <div id="checkpoints"></div>
 
 <button onclick="startCamera()">カメラ起動</button>
-<button onclick="resetPhase()">最初から</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 
@@ -79,10 +78,6 @@ let currentStep = 0;
 let currentPhase = CHECKPOINTS[0];
 
 let stillStart = null;
-
-// 立ち位置の向き
-// true  = 左手が画面左へ伸びる想定
-// false = 左手が画面右へ伸びる想定
 let leftTargetDirection = true;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -97,9 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pose.setOptions({
         modelComplexity: 0,
-        smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
+        smoothLandmarks: true
     });
 
     pose.onResults(res => {
@@ -115,28 +108,23 @@ async function startCamera() {
         let stream;
 
         try {
-            // スマホ用：背面カメラ
             stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: "environment" } },
-                audio: false
+                video: { facingMode: { ideal: "environment" } }
             });
-        } catch (e) {
-            // PC用：通常カメラ
+        } catch {
             stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false
+                video: true
             });
         }
 
         video.srcObject = stream;
-
         await video.play();
 
         requestAnimationFrame(loop);
 
-    } catch (error) {
-        console.error(error);
-        alert('カメラを起動できません。HTTPS接続、カメラ許可、他アプリで使用中でないか確認してください。');
+    } catch (e) {
+        alert("カメラ起動失敗");
+        console.error(e);
     }
 }
 
@@ -145,7 +133,7 @@ function loop(time){
 
     if (!time) time = performance.now();
 
-    if (!video.videoWidth || !video.videoHeight) {
+    if (!video.videoWidth) {
         requestAnimationFrame(loop);
         return;
     }
@@ -153,8 +141,7 @@ function loop(time){
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(video,0,0, canvas.width, canvas.height);
+    ctx.drawImage(video,0,0);
 
     if (time - lastPoseTime > 100 && !isProcessing) {
         isProcessing = true;
@@ -169,337 +156,170 @@ function loop(time){
 
         const lm = latestLandmarks;
 
-        // 必要な点が取れてない時はスキップ
-        if (!lm[0] || !lm[11] || !lm[12] || !lm[13] || !lm[14] || !lm[15] || !lm[16] || !lm[23] || !lm[24]) {
-            requestAnimationFrame(loop);
-            return;
-        }
-
         drawSkeleton(lm);
 
         // ===== 角度 =====
-        const leftElbowAngle  = safeAngle(lm[11], lm[13], lm[15]); // 左ひじ
-        const rightElbowAngle = safeAngle(lm[12], lm[14], lm[16]); // 右ひじ
+        const leftElbowAngle  = safeAngle(lm[11], lm[13], lm[15]);
+        const rightElbowAngle = safeAngle(lm[12], lm[14], lm[16]);
 
-        // 肩・手・顔
         const noseY = lm[0].y;
-
         const leftShoulderX = lm[11].x;
         const leftShoulderY = lm[11].y;
-        const rightShoulderY = lm[12].y;
         const shoulderY = (lm[11].y + lm[12].y) / 2;
 
         const leftHandX = lm[15].x;
         const leftHandY = lm[15].y;
-        const rightHandX = lm[16].x;
         const rightHandY = lm[16].y;
 
-        const rightElbowX = lm[14].x;
-        const rightElbowY = lm[14].y;
+        const handWidth = Math.abs(lm[15].x - lm[16].x);
 
-        const handWidth = Math.abs(leftHandX - rightHandX);
-
-        let footWidth = 0;
-        if (lm[31] && lm[32]) {
-            footWidth = Math.abs(lm[31].x - lm[32].x);
-        }
-
-        // ===== 前フレーム差分 =====
         let move = 0;
-        let rightHandDownMove = 0;
-        let rightElbowSideMove = 0;
-        let prevRightHandY = rightHandY;
-        let prevRightElbowX = rightElbowX;
-
         if (prevLandmarks) {
             move =
                 Math.abs(lm[15].x - prevLandmarks[15].x) +
-                Math.abs(lm[15].y - prevLandmarks[15].y) +
-                Math.abs(lm[16].x - prevLandmarks[16].x) +
-                Math.abs(lm[16].y - prevLandmarks[16].y);
-
-            prevRightHandY = prevLandmarks[16].y;
-            prevRightElbowX = prevLandmarks[14].x;
-
-            rightHandDownMove = rightHandY - prevRightHandY;
-            rightElbowSideMove = Math.abs(rightElbowX - prevRightElbowX);
+                Math.abs(lm[16].x - prevLandmarks[16].x);
         }
 
         prevLandmarks = JSON.parse(JSON.stringify(lm));
 
-        // ===== 静止時間 =====
-        let stillTime = 0;
-        if (move < 0.004) {
-            if (!stillStart) stillStart = Date.now();
-            stillTime = Date.now() - stillStart;
-        } else {
-            stillStart = null;
-        }
+        // ===== 外判定 =====
+        let outsideCheck = leftTargetDirection
+            ? leftHandX < leftShoulderX - 0.06
+            : leftHandX > leftShoulderX + 0.06;
 
-        const metrics = {
-            noseY,
-
-            leftShoulderX,
-            leftShoulderY,
-            rightShoulderY,
-            shoulderY,
-
-            leftHandX,
-            leftHandY,
-            rightHandX,
-            rightHandY,
-
-            rightElbowX,
-            rightElbowY,
-
+        // ===== 判定 =====
+        updatePhase({
             leftElbowAngle,
             rightElbowAngle,
-
+            leftHandX,
+            leftHandY,
+            rightHandY,
+            leftShoulderX,
+            leftShoulderY,
+            shoulderY,
+            noseY,
             handWidth,
-            footWidth,
-            move,
-            stillTime,
+            move
+        });
 
-            prevRightHandY,
-            rightHandDownMove,
-            rightElbowSideMove
-        };
-
-        updatePhase(metrics);
-
+        // ===== 表示 =====
         document.getElementById('phase').innerText = currentPhase;
 
         document.getElementById('metrics').innerHTML = `
-             現在:${currentPhase}<br>
-    左肘角度:${leftElbowAngle.toFixed(1)}°<br>
-    右肘角度:${rightElbowAngle.toFixed(1)}°<br>
-    手幅:${handWidth.toFixed(3)}<br>
-    左手X:${leftHandX.toFixed(3)}<br>
-    左肩X:${leftShoulderX.toFixed(3)}<br>
-    左手Y:${leftHandY.toFixed(3)}<br>
-    鼻Y:${noseY.toFixed(3)}<br>
-    肩Y:${shoulderY.toFixed(3)}<br>
-    外判定:${outsideCheck ? 'OK' : 'NG'}<br>
-    第三条件:<br>
-    角度 ${leftElbowAngle > 130 ? 'OK' : 'NG'} /
-    外 ${outsideCheck ? 'OK' : 'NG'} /
-    手幅 ${handWidth > 0.15 ? 'OK' : 'NG'}<br>
-    右手下げ:${rightHandDownMove.toFixed(4)}<br>
-    動き:${move.toFixed(4)}<br>
-    静止:${stillTime}ms
-        `;
+現在:${currentPhase}<br>
+左肘:${leftElbowAngle.toFixed(1)}°<br>
+右肘:${rightElbowAngle.toFixed(1)}°<br>
+手幅:${handWidth.toFixed(3)}<br>
+外:${outsideCheck ? 'OK':'NG'}<br>
+第三条件:<br>
+角度:${leftElbowAngle > 130 ? 'OK':'NG'} /
+外:${outsideCheck ? 'OK':'NG'} /
+幅:${handWidth > 0.15 ? 'OK':'NG'}
+`;
     }
 
     requestAnimationFrame(loop);
 }
 
-// ===== 骨格描画 =====
+// ===== 骨格 =====
 function drawSkeleton(lm) {
+
     const lines = [
         [11,13],[13,15],
         [12,14],[14,16],
-        [11,12],
-        [11,23],[12,24],[23,24],
-        [23,25],[25,27],[27,31],
-        [24,26],[26,28],[28,32]
+        [11,12]
     ];
 
     ctx.strokeStyle = "lime";
     ctx.lineWidth = 2;
 
-    lines.forEach(([a,b]) => {
-        const p1 = lm[a];
-        const p2 = lm[b];
-        if (!p1 || !p2) return;
-
+    lines.forEach(([a,b])=>{
         ctx.beginPath();
-        ctx.moveTo(p1.x * canvas.width, p1.y * canvas.height);
-        ctx.lineTo(p2.x * canvas.width, p2.y * canvas.height);
+        ctx.moveTo(lm[a].x*canvas.width,lm[a].y*canvas.height);
+        ctx.lineTo(lm[b].x*canvas.width,lm[b].y*canvas.height);
         ctx.stroke();
     });
 
-    // 点
-    ctx.fillStyle = "red";
-    [0,11,12,13,14,15,16,23,24,31,32].forEach(i => {
-        if (!lm[i]) return;
-        ctx.beginPath();
-        ctx.arc(lm[i].x * canvas.width, lm[i].y * canvas.height, 4, 0, Math.PI * 2);
-        ctx.fill();
-    });
+    // ===== 角度表示 =====
+    const leftElbowAngle = safeAngle(lm[11], lm[13], lm[15]);
+    const rightElbowAngle = safeAngle(lm[12], lm[14], lm[16]);
+
+    ctx.fillStyle = "yellow";
+    ctx.font = "16px Arial";
+
+    ctx.fillText(
+        `L:${leftElbowAngle.toFixed(0)}°`,
+        lm[13].x*canvas.width+5,
+        lm[13].y*canvas.height-5
+    );
+
+    ctx.fillText(
+        `R:${rightElbowAngle.toFixed(0)}°`,
+        lm[14].x*canvas.width+5,
+        lm[14].y*canvas.height-5
+    );
 }
 
-// ===== 判定ロジック =====
+// ===== 判定 =====
 function updatePhase(m) {
 
-    // 胴作り → 打起こし
-    // 両手が肩より上に上がったら
     if (currentPhase === "胴作り") {
-        if (
-            m.leftHandY < m.shoulderY - 0.03 &&
-            m.rightHandY < m.shoulderY - 0.03
-        ) {
-            next();
-        }
+        if (m.leftHandY < m.shoulderY) next();
     }
 
-    // 打起こし → 第三
-    // 画像基準：
-    // 左腕が伸びる
-    // 左手が肩より外
-    // 左手が肩より少し上
-    // 右手が頭付近
-    // 手幅が開いている
-    // 打起こし → 第三
     else if (currentPhase === "打起こし") {
 
-        let leftHandOutside = false;
-
-        if (leftTargetDirection) {
-            leftHandOutside = m.leftHandX < m.leftShoulderX - 0.06;
-        } else {
-            leftHandOutside = m.leftHandX > m.leftShoulderX + 0.06;
-        }
+        let outside = leftTargetDirection
+            ? m.leftHandX < m.leftShoulderX - 0.06
+            : m.leftHandX > m.leftShoulderX + 0.06;
 
         if (
             m.leftElbowAngle > 130 &&
-            leftHandOutside &&
+            outside &&
             m.handWidth > 0.15
         ) {
             next();
-            save("第三", m);
         }
     }
 
-    // 第三 → 引き分け
-    // 右ひじ角度が狭くなり、右手が下がり、手幅がさらに広がる
     else if (currentPhase === "第三") {
-        if (
-            m.rightElbowAngle < 125 &&
-            m.rightHandDownMove > 0.002 &&
-            m.handWidth > 0.30
-        ) {
-            next();
-            save("引き分け", m);
-        }
+        if (m.rightElbowAngle < 120 && m.move > 0.01) next();
     }
 
-    // 引き分け → 会
-    // 手幅が広く、動きが止まる
     else if (currentPhase === "引き分け") {
-        if (
-            m.handWidth > 0.38 &&
-            m.stillTime > 700
-        ) {
-            next();
-            save("会", m);
-        }
+        if (m.handWidth > 0.4) next();
     }
 
-    // 会 → 離れ
-    // 右ひじが横に抜ける
     else if (currentPhase === "会") {
-        if (
-            m.rightElbowSideMove > 0.015 &&
-            m.move > 0.018
-        ) {
-            next();
-        }
+        if (m.move > 0.02) next();
     }
 }
 
-// ===== 次へ =====
+// ===== 次 =====
 function next() {
-    if (currentStep < CHECKPOINTS.length - 1) {
-        currentStep++;
-        currentPhase = CHECKPOINTS[currentStep];
-        renderCheckpoints();
-    }
+    currentStep++;
+    currentPhase = CHECKPOINTS[currentStep] || "終了";
+    renderCheckpoints();
 }
 
-// ===== チェックポイント表示 =====
+// ===== 表示 =====
 function renderCheckpoints() {
-    const html = CHECKPOINTS.map((p, i) => {
-        if (i < currentStep) return `${p} ✓`;
-        if (i === currentStep) return `<b style="color:yellow;">${p}</b>`;
-        return p;
-    }).join(' → ');
-
-    document.getElementById('checkpoints').innerHTML = html;
-}
-
-// ===== 保存 =====
-function save(phase, m) {
-    fetch('/kyudo-pose-records', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-            phase: phase,
-
-            left_elbow_angle: m.leftElbowAngle,
-            right_elbow_angle: m.rightElbowAngle,
-
-            hand_width: m.handWidth,
-            foot_width: m.footWidth,
-
-            move: m.move,
-            still_time: m.stillTime,
-
-            left_hand_x: m.leftHandX,
-            left_hand_y: m.leftHandY,
-            right_hand_x: m.rightHandX,
-            right_hand_y: m.rightHandY
-        })
-    }).catch(() => {});
+    document.getElementById('checkpoints').innerText =
+        CHECKPOINTS.map((p,i)=>{
+            if(i<currentStep) return "✓"+p;
+            if(i===currentStep) return "▶"+p;
+            return p;
+        }).join(" → ");
 }
 
 // ===== 角度 =====
 function safeAngle(a,b,c){
-    if (!a || !b || !c) return 0;
-
-    const ab = {x:a.x-b.x, y:a.y-b.y};
-    const cb = {x:c.x-b.x, y:c.y-b.y};
-
-    const dot = ab.x*cb.x + ab.y*cb.y;
-    const mag =
-        Math.sqrt(ab.x**2 + ab.y**2) *
-        Math.sqrt(cb.x**2 + cb.y**2);
-
-    if (!mag) return 0;
-
-    let cos = dot / mag;
-    cos = Math.max(-1, Math.min(1, cos));
-
-    return Math.acos(cos) * 180 / Math.PI;
+    const ab={x:a.x-b.x,y:a.y-b.y};
+    const cb={x:c.x-b.x,y:c.y-b.y};
+    const dot=ab.x*cb.x+ab.y*cb.y;
+    const mag=Math.sqrt(ab.x**2+ab.y**2)*Math.sqrt(cb.x**2+cb.y**2);
+    return mag ? Math.acos(dot/mag)*180/Math.PI : 0;
 }
-function drawAngleLabel(point, angleText, label) {
-    if (!point) return;
-
-    const x = point.x * canvas.width;
-    const y = point.y * canvas.height;
-
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(x + 8, y - 22, 90, 22);
-
-    ctx.fillStyle = "yellow";
-    ctx.font = "16px sans-serif";
-    ctx.fillText(`${label}:${angleText}`, x + 12, y - 6);
-}
-
-function drawTextAt(point, text) {
-    if (!point) return;
-
-    const x = point.x * canvas.width;
-    const y = point.y * canvas.height;
-
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(x + 8, y + 8, 55, 22);
-
-    ctx.fillStyle = "white";
-    ctx.font = "15px sans-serif";
-    ctx.fillText(text, x + 12, y
 </script>
 
 @endsection
