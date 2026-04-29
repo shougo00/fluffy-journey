@@ -270,12 +270,23 @@ function loop(time){
         document.getElementById('phase').innerText = currentPhase;
 
         document.getElementById('metrics').innerHTML = `
-            左肘:${leftElbowAngle.toFixed(1)}°<br>
-            右肘:${rightElbowAngle.toFixed(1)}°<br>
-            手幅:${handWidth.toFixed(3)}<br>
-            右手下げ:${rightHandDownMove.toFixed(4)}<br>
-            動き:${move.toFixed(4)}<br>
-            静止:${stillTime}ms
+             現在:${currentPhase}<br>
+    左肘角度:${leftElbowAngle.toFixed(1)}°<br>
+    右肘角度:${rightElbowAngle.toFixed(1)}°<br>
+    手幅:${handWidth.toFixed(3)}<br>
+    左手X:${leftHandX.toFixed(3)}<br>
+    左肩X:${leftShoulderX.toFixed(3)}<br>
+    左手Y:${leftHandY.toFixed(3)}<br>
+    鼻Y:${noseY.toFixed(3)}<br>
+    肩Y:${shoulderY.toFixed(3)}<br>
+    外判定:${outsideCheck ? 'OK' : 'NG'}<br>
+    第三条件:<br>
+    角度 ${leftElbowAngle > 130 ? 'OK' : 'NG'} /
+    外 ${outsideCheck ? 'OK' : 'NG'} /
+    手幅 ${handWidth > 0.15 ? 'OK' : 'NG'}<br>
+    右手下げ:${rightHandDownMove.toFixed(4)}<br>
+    動き:${move.toFixed(4)}<br>
+    静止:${stillTime}ms
         `;
     }
 
@@ -463,6 +474,32 @@ function safeAngle(a,b,c){
 
     return Math.acos(cos) * 180 / Math.PI;
 }
+function drawAngleLabel(point, angleText, label) {
+    if (!point) return;
+
+    const x = point.x * canvas.width;
+    const y = point.y * canvas.height;
+
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(x + 8, y - 22, 90, 22);
+
+    ctx.fillStyle = "yellow";
+    ctx.font = "16px sans-serif";
+    ctx.fillText(`${label}:${angleText}`, x + 12, y - 6);
+}
+
+function drawTextAt(point, text) {
+    if (!point) return;
+
+    const x = point.x * canvas.width;
+    const y = point.y * canvas.height;
+
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(x + 8, y + 8, 55, 22);
+
+    ctx.fillStyle = "white";
+    ctx.font = "15px sans-serif";
+    ctx.fillText(text, x + 12, y
 </script>
 
 @endsection
