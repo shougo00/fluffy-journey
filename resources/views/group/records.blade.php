@@ -477,7 +477,7 @@ html, body {
 @media print {
     @page {
         size: A4 portrait;
-        margin: 8mm;
+        margin: 4mm;
     }
 
     nav,
@@ -509,14 +509,12 @@ html, body {
         margin: 0 !important;
     }
 
-     /* PCはそのまま（何もしない） */
     .print-page {
         page-break-after: always;
         break-after: page;
         overflow: hidden;
-        padding-bottom: 1px;
+        padding-bottom: 0;
     }
-
 
     .print-page:last-child {
         page-break-after: auto;
@@ -525,10 +523,10 @@ html, body {
 
     .print-title {
         text-align: center;
-        font-size: 15px;
+        font-size: 13px;
         font-weight: bold;
-        margin-bottom: 6px;
-        line-height: 1.4;
+        margin-bottom: 3px;
+        line-height: 1.25;
     }
 
     .print-score-header,
@@ -545,7 +543,6 @@ html, body {
         gap: 0 !important;
     }
 
-    /* 上下の余計な線を削除（ここ重要） */
     .print-score-header {
         margin-bottom: 0;
     }
@@ -559,67 +556,62 @@ html, body {
         align-items: stretch;
     }
 
-    /* ===== マス（正方形＋大きい○×） ===== */
     .print-shot {
-        width: 38px;
-        height: 38px;
+        width: 34px;
+        height: 34px;
         border: 1px solid #333;
         border-radius: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: bold;
         line-height: 1;
         box-sizing: border-box;
     }
 
-    /* ===== 列 ===== */
     .print-user-column {
-        width: 38px;
-        min-width: 38px;
+        width: 34px;
+        min-width: 34px;
         display: flex;
         flex-direction: column;
         gap: 0 !important;
         align-items: stretch;
     }
 
-    /* ===== 総計（上） ===== */
     .print-score {
-        width: 38px;
-        min-width: 38px;
-        height: 28px;
-        line-height: 28px;
+        width: 34px;
+        min-width: 34px;
+        height: 24px;
+        line-height: 24px;
         text-align: center;
         font-weight: bold;
-        font-size: 14px;
+        font-size: 12px;
         box-sizing: border-box;
         border: 1px solid #333;
-        border-top: 3px solid #000;
-        border-bottom: 3px solid #000;
+        border-top: 2px solid #000;
+        border-bottom: 2px solid #000;
     }
 
-    /* ===== 名前（下） ===== */
     .print-name {
-        width: 38px;
-        min-width: 38px;
-        height: 78px;
+        width: 34px;
+        min-width: 34px;
+        height: 64px;
         writing-mode: vertical-rl;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 14px;
+        font-size: 12px;
         box-sizing: border-box;
         border: 1px solid #333;
-        border-top: 3px solid #000;
-        border-bottom: 3px solid #000;
+        border-top: 2px solid #000;
+        border-bottom: 2px solid #000;
     }
 
-    /* ===== 立番号 ===== */
     .print-tate-label {
-        width: 30px;
-        min-width: 30px;
+        width: 26px;
+        min-width: 26px;
         border: 1px solid #333;
         display: flex;
         align-items: center;
@@ -628,17 +620,15 @@ html, body {
         box-sizing: border-box;
     }
 
-    /* ===== 左下スペース ===== */
     .print-name-spacer {
-        width: 30px;
-        min-width: 30px;
-        height: 78px;
-        border-top: 3px solid #000;
-        border-bottom: 3px solid #000;
+        width: 26px;
+        min-width: 26px;
+        height: 64px;
+        border-top: 2px solid #000;
+        border-bottom: 2px solid #000;
         box-sizing: border-box;
     }
 
-    /* ===== 立区切り（内側だけ） ===== */
     .print-tate-border {
         border-left: 2px solid #000;
     }
