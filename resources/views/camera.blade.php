@@ -362,14 +362,24 @@ function updatePhase(m) {
 
     // 第三 → 引き分け
     // 右ひじ角度が狭くなり、右手が下がり、手幅がさらに広がる
-    else if (currentPhase === "第三") {
+    // 打起こし → 第三
+    else if (currentPhase === "打起こし") {
+
+        let leftHandOutside = false;
+
+        if (leftTargetDirection) {
+            leftHandOutside = m.leftHandX < m.leftShoulderX - 0.06;
+        } else {
+            leftHandOutside = m.leftHandX > m.leftShoulderX + 0.06;
+        }
+
         if (
-            m.rightElbowAngle < 125 &&
-            m.rightHandDownMove > 0.002 &&
-            m.handWidth > 0.30
+            m.leftElbowAngle > 130 &&
+            leftHandOutside &&
+            m.handWidth > 0.15
         ) {
             next();
-            save("引き分け", m);
+            save("第三", m);
         }
     }
 
