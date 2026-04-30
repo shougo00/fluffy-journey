@@ -10,13 +10,12 @@
     <h4>{{ $group->name }}（正規連）</h4>
 
     <div style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-outline-primary" onclick="reloadAndPrint()">
+        印刷
+    </button>
         <a href="/group/{{ $group->id }}/lineup?date={{ $date }}" class="btn btn-secondary">
             立順
         </a>
-
-        <button type="button" class="btn btn-outline-primary" onclick="window.print()">
-            印刷
-        </button>
     </div>
 
 </div>
@@ -636,6 +635,25 @@ html, body {
 </style>
 
 <script>
+
+function reloadAndPrint() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('print', '1');
+    window.location.href = url.toString();
+}
+
+window.addEventListener('load', () => {
+    const url = new URL(window.location.href);
+
+    if (url.searchParams.get('print') === '1') {
+        url.searchParams.delete('print');
+        history.replaceState(null, '', url.toString());
+
+        setTimeout(() => {
+            window.print();
+        }, 500);
+    }
+});
     
 function updateShot(el){
 

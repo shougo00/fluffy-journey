@@ -11,7 +11,9 @@ use App\Http\Controllers\VideoController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupRecordController;
 use App\Http\Controllers\LineupController;
-use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceController; 
+use App\Http\Controllers\KyudoResultController;  
+use App\Http\Controllers\KyudoResultPageController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -83,8 +85,18 @@ Route::middleware([ 'verified'])->group(function () {
     // 出欠ページ
    Route::get('/group/{groupId}/attendance', [AttendanceController::class, 'index']);
     Route::post('/group/{groupId}/attendance', [AttendanceController::class, 'save']);
-});
 
+    Route::post('/kyudo-results', [KyudoResultController::class, 'store'])
+        ->middleware('auth');
+
+  
+    //射形記録画面
+    Route::get('/kyudo-result-list', [KyudoResultPageController::class, 'index'])
+        ->name('kyudo.result.list');
+    });
+    Route::delete('/kyudo-results/{result}', [KyudoResultPageController::class, 'destroy'])
+    ->name('kyudo.results.destroy')
+    ->middleware('auth');
 
 
 // 4️⃣ 認証ルート

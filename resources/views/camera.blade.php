@@ -61,7 +61,7 @@ canvas {
     text-align: center;
 }
 
-button {
+.kyudo-btn {
     display: block;
     width: 100%;
     max-width: 600px;
@@ -70,6 +70,8 @@ button {
     font-size: 16px;
     border-radius: 8px;
     border: none;
+    text-align: center;       
+    text-decoration: none;  
 }
 
 .btn-main {
@@ -123,6 +125,10 @@ button {
     background: #dc3545;
     color: white;
 }
+.btn-green {
+    background: #28a745 !important;
+    color: white !important;
+}
 </style>
 
 <div class="video-container">
@@ -136,11 +142,13 @@ button {
 
 
 <div id="cameraInfo">カメラ未起動</div>
-<button class="btn-danger" onclick="resetPhase()">最初から</button>
-<button class="btn-main" onclick="startCamera()">カメラ起動</button>
-<button class="btn-sub" onclick="switchCamera()">カメラ切替</button>
-<button class="btn-sub" onclick="toggleDirection()">向き切替</button>
-
+<button class="kyudo-btn btn-danger" onclick="resetPhase()">最初から</button>
+<button class="kyudo-btn btn-main" onclick="startCamera()">カメラ起動</button>
+<button class="kyudo-btn btn-sub" onclick="switchCamera()">カメラ切替</button>
+<button class="kyudo-btn btn-sub" onclick="toggleDirection()">向き切替</button>
+<a href="{{ route('kyudo.result.list') }}" class="kyudo-btn btn-green">
+    記録確認
+</a>
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 
