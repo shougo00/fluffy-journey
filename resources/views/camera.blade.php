@@ -367,8 +367,8 @@ function drawTextAtPoint(p, text, color) {
 function lineAngle(a, b) {
     if (!a || !b) return 0;
 
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
+    const dx = (b.x * canvas.width) - (a.x * canvas.width);
+    const dy = (b.y * canvas.height) - (a.y * canvas.height);
 
     let deg = Math.atan2(dy, dx) * 180 / Math.PI;
 
@@ -744,8 +744,15 @@ function drawSkeleton(lm) {
 function safeAngle(a, b, c) {
     if (!a || !b || !c) return 0;
 
-    const ab = { x: a.x - b.x, y: a.y - b.y };
-    const cb = { x: c.x - b.x, y: c.y - b.y };
+    const ax = a.x * canvas.width;
+    const ay = a.y * canvas.height;
+    const bx = b.x * canvas.width;
+    const by = b.y * canvas.height;
+    const cx = c.x * canvas.width;
+    const cy = c.y * canvas.height;
+
+    const ab = { x: ax - bx, y: ay - by };
+    const cb = { x: cx - bx, y: cy - by };
 
     const dot = ab.x * cb.x + ab.y * cb.y;
 
