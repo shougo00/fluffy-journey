@@ -44,7 +44,7 @@
 /* ----------------------
    スマホ対応
 ---------------------- */
-@media (max-width: 576px) {
+@media (max-width: 991px) {
     /* アバター縮小＆中央寄せ */
     .navbar-avatar-box {
         width: 35px;
