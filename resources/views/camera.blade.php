@@ -94,6 +94,35 @@ button {
     color: #555;
     text-align: center;
 }
+#overlayCheckpoints {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 5;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+#overlayResetBtn {
+    position: absolute;
+    right: 8px;
+    bottom: 58px;
+    z-index: 6;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 8px;
+    background: #dc3545;
+    color: white;
+}
 </style>
 
 <div class="video-container">
@@ -102,15 +131,16 @@ button {
 
     <div id="phase">胴作り</div>
     <div id="metrics"></div>
+    <div id="overlayCheckpoints"></div>
 </div>
 
-<div id="checkpoints"></div>
-<div id="cameraInfo">カメラ未起動</div>
 
+<div id="cameraInfo">カメラ未起動</div>
+<button class="btn-danger" onclick="resetPhase()">最初から</button>
 <button class="btn-main" onclick="startCamera()">カメラ起動</button>
 <button class="btn-sub" onclick="switchCamera()">カメラ切替</button>
 <button class="btn-sub" onclick="toggleDirection()">向き切替</button>
-<button class="btn-danger" onclick="resetPhase()">最初から</button>
+
 
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 
@@ -133,8 +163,14 @@ let currentPhase = CHECKPOINTS[0];
 let phaseHitCount = 0;
 let lastPhaseChangeTime = 0;
 let stillStart = null;
-
+let kaiStartTime = null;   // 会に入った時間
+let measuredData = null;   // 1秒後の角度データ
+let measuredDone = false;  // 1秒経過したか
+let resultHandled = false;
 let leftTargetDirection = true;
+let measureStartTime = null;
+let measureBuffer = [];
+let kaiEnterTime = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     video = document.getElementById('camera');
@@ -261,6 +297,22 @@ function loop(time) {
 drawSkeleton(lm);
 
         const m = calcMetrics(lm);
+        // ===== 会の平均用データ収集 =====
+            // 会に入って0.5秒後から記録する
+            if (currentPhase === "会" && kaiEnterTime) {
+
+                const now = Date.now();
+                const elapsed = now - kaiEnterTime;
+
+                if (elapsed >= 500) {
+                    measureBuffer.push({
+                        time: now,
+                        rightElbow: m.rightElbowAngle,
+                        rightArmpit: m.rightArmpitAngle,
+                        leftArmpit: m.leftArmpitAngle
+                    });
+                }
+            }
         drawAngles(lm, m);
         updatePhase(m);
 
@@ -273,9 +325,8 @@ drawSkeleton(lm);
             右脇:${m.rightArmpitAngle.toFixed(1)}°<br>
             手幅:${m.handWidth.toFixed(3)}<br>
             足幅:${m.footWidth.toFixed(3)}<br>
-            動き:${m.move.toFixed(4)}<br>
             静止:${m.stillTime}ms<br>
-            判定:${phaseHitCount}/5
+            
             
         `;
     }
@@ -442,19 +493,19 @@ function calcMetrics(lm) {
 // ===== 判定ロジック =====
 function updatePhase(m) {
     if (currentPhase === "胴作り") {
-    judge(
-        m.leftHandY < m.noseY + 0.05 &&
-        m.rightHandY < m.noseY + 0.05 &&
-        m.handWidth > 0.12
-    );
-}
+        judge(
+            m.leftHandY < m.noseY - 0.02 &&
+            m.rightHandY < m.noseY - 0.02 &&
+            m.handWidth > 0.12
+        );
+    }
 
     else if (currentPhase === "打起こし") {
 
         let diff = m.leftHandX - m.leftShoulderX;
 
         let leftHandOutside = diff > 0.1;//ここ変えれば右手の位置調整
-        console.log("diff:",  diff);
+       
 
         judge(
             m.leftElbowAngle >= 160 &&
@@ -472,12 +523,68 @@ function updatePhase(m) {
             m.leftArmpitAngle <= 115
         );
     }
-
     else if (currentPhase === "会") {
-        judge(
-            m.rightElbowAngle >= 90
-        );
+
+        // 離れ判定：右肘90度以上
+        const releaseDetected = m.rightElbowAngle >= 90;
+
+        if (releaseDetected && !resultHandled) {
+
+            resultHandled = true;
+
+            const releaseTime = Date.now();
+            const kaiTime = kaiStartTime ? releaseTime - kaiStartTime : 0;
+
+            // 離れ直前0.5秒を除外
+            const validBuffer = measureBuffer.filter(d => {
+                return d.time <= releaseTime - 500;
+            });
+
+            if (validBuffer.length === 0) {
+                alert("平均データが不足しています。もう少し長く会を保ってください。");
+                resetPhase();
+                return;
+            }
+
+            let sumElbow = 0;
+            let sumRight = 0;
+            let sumLeft = 0;
+
+            validBuffer.forEach(d => {
+                sumElbow += d.rightElbow;
+                sumRight += d.rightArmpit;
+                sumLeft += d.leftArmpit;
+            });
+
+            const count = validBuffer.length;
+
+            measuredData = {
+                rightElbow: sumElbow / count,
+                rightArmpit: sumRight / count,
+                leftArmpit: sumLeft / count
+            };
+
+            currentPhase = "離れ";
+            currentStep = CHECKPOINTS.indexOf("離れ");
+            renderCheckpoints();
+
+            setTimeout(() => {
+                if (confirm(
+                    "保存しますか？\n\n" +
+                    "右肘: " + measuredData.rightElbow.toFixed(1) + "°\n" +
+                    "右脇: " + measuredData.rightArmpit.toFixed(1) + "°\n" +
+                    "左脇: " + measuredData.leftArmpit.toFixed(1) + "°\n" +
+                    "会時間: " + (kaiTime / 1000).toFixed(2) + "秒"
+                )) {
+                    saveResult(kaiTime);
+                }
+
+                resetPhase();
+
+            }, 2000);
+        }
     }
+
 }
 
 // ===== 連続判定 =====
@@ -493,12 +600,14 @@ function judge(condition) {
 
         if (currentPhase === "第三") {
             save("第三", lastMetricsSafe());
-        }
 
-        if (currentPhase === "会") {
-            save("会", lastMetricsSafe());
-        }
+            kaiStartTime = Date.now();
+            kaiEnterTime = Date.now();
 
+            measureBuffer = [];
+            measuredData = null;
+            resultHandled = false;
+        }
         next();
     }
 }
@@ -557,7 +666,13 @@ function renderCheckpoints() {
         return p;
     }).join(' → ');
 
-    document.getElementById('checkpoints').innerHTML = html;
+    // 下の表示（そのまま）
+    const bottom = document.getElementById('checkpoints');
+    if (bottom) bottom.innerHTML = html;
+
+    // 上のカメラ表示
+    const overlay = document.getElementById('overlayCheckpoints');
+    if (overlay) overlay.innerHTML = html;
 }
 
 // ===== 保存 =====
@@ -644,6 +759,33 @@ function safeAngle(a, b, c) {
     cos = Math.max(-1, Math.min(1, cos));
 
     return Math.acos(cos) * 180 / Math.PI;
+}
+function saveResult(kaiTime) {
+
+    if (!measuredData) {
+        alert("データ未取得");
+        return;
+    }
+
+    fetch('/kyudo-results', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            kai_time: kaiTime,
+            right_elbow_angle: measuredData.rightElbow,
+            right_armpit_angle: measuredData.rightArmpit,
+            left_armpit_angle: measuredData.leftArmpit
+        })
+    })
+    .then(() => {
+        console.log("保存成功");
+    })
+    .catch(() => {
+        console.error("保存失敗");
+    });
 }
 </script>
 
