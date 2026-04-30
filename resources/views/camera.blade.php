@@ -129,6 +129,17 @@ canvas {
     background: #28a745 !important;
     color: white !important;
 }
+@media (max-width: 1024px) {
+    .video-container {
+        height: 70vh;
+    }
+
+    #camera,
+    #canvas {
+        height: 100%;
+        object-fit: cover;
+    }
+}
 </style>
 
 <div class="video-container">
