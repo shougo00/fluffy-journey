@@ -213,12 +213,17 @@
 
     <div class="summary-area">
         
+        @php
+            $isTodayPage = \Carbon\Carbon::parse($date)->isToday();
+
+            $selectedTitle = $isTodayPage
+                ? '前回の記録（' . \Carbon\Carbon::parse($displayDate)->format('Y年m月d日') . '）'
+                : \Carbon\Carbon::parse($displayDate)->format('Y年m月d日');
+        @endphp
+
         @foreach ([
             '今日の記録' => $todaySummary,
-            ($displayDate === $date
-                ? \Carbon\Carbon::parse($displayDate)->format('Y年m月d日')
-                : '前回の記録（' . \Carbon\Carbon::parse($displayDate)->format('Y年m月d日') . '）'
-            ) => $selectedDaySummary,
+            $selectedTitle => $selectedDaySummary,
         ] as $title => $summary)
 
             <div class="summary-card">

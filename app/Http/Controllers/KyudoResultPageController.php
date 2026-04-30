@@ -41,11 +41,23 @@ class KyudoResultPageController extends Controller
         // ===== 表示日決定（ここ重要） =====
         $selectedDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
 
+        $previousDate = null;
+
         if ($selectedDate === now()->format('Y-m-d')) {
-            $previousDate = $allResults
-                ->filter(fn($item) => $item->created_at->format('Y-m-d') < now()->format('Y-m-d'))
+            $previousResult = $allResults
+                ->filter(function ($item) {
+                    return $item->created_at->format('Y-m-d') < now()->format('Y-m-d')
+                        && !is_null($item->right_elbow_angle)
+                        && !is_null($item->right_armpit_angle)
+                        && !is_null($item->left_armpit_angle)
+                        && !is_null($item->kai_time);
+                })
                 ->sortByDesc('created_at')
-                ->first()?->created_at?->format('Y-m-d');
+                ->first();
+
+            $previousDate = $previousResult
+                ? $previousResult->created_at->format('Y-m-d')
+                : null;
 
             $displayDate = $previousDate ?? $selectedDate;
         } else {
@@ -124,6 +136,7 @@ class KyudoResultPageController extends Controller
             'poseRecordDates' => $poseRecordDates,
 
             'displayDate' => $displayDate,
+            'hasPreviousRecord' => $previousDate !== null,
         ]);
     }
 
