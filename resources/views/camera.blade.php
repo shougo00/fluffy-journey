@@ -146,10 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     pose.setOptions({
-        modelComplexity: 0,
+        modelComplexity: 1,
         smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
+        enableSegmentation: false,
+        smoothSegmentation: false,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
     });
 
     pose.onResults(res => {
@@ -267,11 +269,14 @@ drawSkeleton(lm);
         document.getElementById('metrics').innerHTML = `
             左肘:${m.leftElbowAngle.toFixed(1)}°<br>
             右肘:${m.rightElbowAngle.toFixed(1)}°<br>
+            左脇:${m.leftArmpitAngle.toFixed(1)}°<br>
+            右脇:${m.rightArmpitAngle.toFixed(1)}°<br>
             手幅:${m.handWidth.toFixed(3)}<br>
             足幅:${m.footWidth.toFixed(3)}<br>
             動き:${m.move.toFixed(4)}<br>
             静止:${m.stillTime}ms<br>
             判定:${phaseHitCount}/5
+            
         `;
     }
 
@@ -280,11 +285,13 @@ drawSkeleton(lm);
 
 // ===== 角度表示 =====
 function drawAngles(lm, m) {
-    ctx.font = "16px Arial";
+    ctx.font = "20px Arial";
     ctx.lineWidth = 4;
 
     drawTextAtPoint(lm[13], `左肘 ${m.leftElbowAngle.toFixed(0)}°`, "yellow");
     drawTextAtPoint(lm[14], `右肘 ${m.rightElbowAngle.toFixed(0)}°`, "yellow");
+    drawTextAtPoint(lm[11], `左脇 ${m.leftArmpitAngle.toFixed(0)}°`, "orange");
+    drawTextAtPoint(lm[12], `右脇 ${m.rightArmpitAngle.toFixed(0)}°`, "orange");
 
     const leftArmAngle = lineAngle(lm[11], lm[15]);
     const rightArmAngle = lineAngle(lm[12], lm[16]);
@@ -366,6 +373,8 @@ function calcMetrics(lm) {
     const rightElbowAngle = safeAngle(lm[12], lm[14], lm[16]);
 
     const handWidth = Math.abs(leftHandX - rightHandX);
+    const leftArmpitAngle  = safeAngle(lm[13], lm[11], lm[23]); // 左脇
+    const rightArmpitAngle = safeAngle(lm[14], lm[12], lm[24]); // 右脇
 
     let footWidth = 0;
     if (lm[31] && lm[32]) {
@@ -406,6 +415,9 @@ function calcMetrics(lm) {
         rightShoulderY,
         shoulderY,
 
+        leftArmpitAngle,
+        rightArmpitAngle,
+
         leftHandX,
         leftHandY,
         rightHandX,
@@ -438,25 +450,34 @@ function updatePhase(m) {
 }
 
     else if (currentPhase === "打起こし") {
+
+        let diff = m.leftHandX - m.leftShoulderX;
+
+        let leftHandOutside = diff > 0.1;//ここ変えれば右手の位置調整
+        console.log("diff:",  diff);
+
         judge(
-            m.leftElbowAngle >= 170 &&
-            m.leftElbowAngle <= 180
+            m.leftElbowAngle >= 160 &&
+            m.leftElbowAngle <= 180 &&
+            leftHandOutside
         );
     }
 
-  else if (currentPhase === "第三") {
-            judge(
-                m.move < 0.004 &&
-                m.stillTime > 700 &&
-                m.handWidth > 0.25
-            );
-        }
+    else if (currentPhase === "第三") {
+        judge(
+            m.move < 0.004 &&
+            m.stillTime > 700 &&
+            m.handWidth > 0.25 &&
+            m.rightArmpitAngle <= 115 &&
+            m.leftArmpitAngle <= 115
+        );
+    }
 
-        else if (currentPhase === "会") {
-            judge(
-                m.rightElbowAngle >= 90
-            );
-        }
+    else if (currentPhase === "会") {
+        judge(
+            m.rightElbowAngle >= 90
+        );
+    }
 }
 
 // ===== 連続判定 =====
