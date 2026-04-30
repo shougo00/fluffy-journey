@@ -580,6 +580,13 @@ function updatePhase(m) {
                 }
 
                 resetPhase();
+                latestLandmarks = null;
+                prevLandmarks = null;
+                smoothLandmarksData = null;
+
+                if (video && video.srcObject) {
+                    requestAnimationFrame(loop);
+                }
 
             }, 2000);
         }
