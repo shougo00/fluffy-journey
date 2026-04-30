@@ -790,10 +790,10 @@ function saveResult(kaiTime) {
 
     if (!measuredData) {
         alert("データ未取得");
-        return;
+        return Promise.resolve();
     }
 
-    fetch('/kyudo-results', {
+    return fetch('/kyudo-results', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
