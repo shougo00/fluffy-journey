@@ -568,23 +568,35 @@ function updatePhase(m) {
             currentStep = CHECKPOINTS.indexOf("離れ");
             renderCheckpoints();
 
-            setTimeout(() => {
-                if (confirm(
+            setTimeout(async () => {
+                const ok = confirm(
                     "保存しますか？\n\n" +
                     "右肘: " + measuredData.rightElbow.toFixed(1) + "°\n" +
                     "右脇: " + measuredData.rightArmpit.toFixed(1) + "°\n" +
                     "左脇: " + measuredData.leftArmpit.toFixed(1) + "°\n" +
                     "会時間: " + (kaiTime / 1000).toFixed(2) + "秒"
-                )) {
-                    saveResult(kaiTime);
+                );
+
+                if (ok) {
+                    await saveResult(kaiTime);
                 }
 
                 resetPhase();
+
                 latestLandmarks = null;
                 prevLandmarks = null;
                 smoothLandmarksData = null;
+                measureBuffer = [];
+                measuredData = null;
+                kaiStartTime = null;
+                kaiEnterTime = null;
+
+                // スマホ対策：止まった処理を強制解除
+                isProcessing = false;
+                lastPoseTime = 0;
 
                 if (video && video.srcObject) {
+                    await video.play().catch(() => {});
                     requestAnimationFrame(loop);
                 }
 
