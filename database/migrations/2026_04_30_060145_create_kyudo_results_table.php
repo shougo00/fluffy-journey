@@ -20,8 +20,6 @@ return new class extends Migration
 
             // 会から離れまでの時間 ms
             $table->integer('kai_time');
-
-            // 会から1秒後の角度
             $table->float('right_elbow_angle')->nullable();
             $table->float('right_armpit_angle')->nullable();
             $table->float('left_armpit_angle')->nullable();

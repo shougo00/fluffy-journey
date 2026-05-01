@@ -181,7 +181,7 @@
             </li>
             <li class="nav-item">
                 <a class="nav-link active" href="#"
-                onclick="goGroupRecord()">
+                onclick="goGroupHistory()">
                     グループ履歴
                 </a>
             </li>
@@ -269,9 +269,9 @@
                     グループ記録
                 </a>
             </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="#"
-                onclick="goGroupRecord()">
+            <li class="nav-item">
+                <a class="nav-link active" href="#"
+                onclick="goGroupHistory()">
                     グループ履歴
                 </a>
             </li>
@@ -330,6 +330,26 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 <script>
+
+function goGroupHistory() {
+
+    @auth
+        let groupId = {{ Auth::user()->groups->first()->id ?? 'null' }};
+
+        if (!groupId) {
+            alert('グループに参加していません');
+            return;
+        }
+
+        // 👇ここが履歴ページ
+        window.location.href = `/group/${groupId}/history`;
+
+    @else
+        alert('ログインしてください');
+    @endauth
+
+}
+
 function goAttendance() {
 
     @auth

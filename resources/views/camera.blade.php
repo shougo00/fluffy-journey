@@ -131,7 +131,7 @@ canvas {
 }
 @media (max-width: 1024px) {
     .video-container {
-        height: 85vh;
+        height: 70vh;
     }
 
     #camera,

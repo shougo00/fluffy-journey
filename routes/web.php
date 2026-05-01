@@ -12,8 +12,9 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\GroupRecordController;
 use App\Http\Controllers\LineupController;
 use App\Http\Controllers\AttendanceController; 
-use App\Http\Controllers\KyudoResultController;  
+use App\Http\Controllers\KyudoResultController;      
 use App\Http\Controllers\KyudoResultPageController;
+use App\Http\Controllers\GroupHistoryController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -98,6 +99,10 @@ Route::middleware([ 'verified'])->group(function () {
     ->name('kyudo.results.destroy')
     ->middleware('auth');
 
+
+    Route::get('/group/{group}/history', [GroupHistoryController::class, 'index'])
+        ->name('group.history')
+        ->middleware('auth');
 
 // 4️⃣ 認証ルート
 require __DIR__.'/auth.php';
