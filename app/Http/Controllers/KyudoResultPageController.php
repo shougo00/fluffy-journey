@@ -65,8 +65,8 @@ class KyudoResultPageController extends Controller
         }
 
         // ===== 角度データ（表示日） =====
-        $selectedDayResults = $allResults->filter(function ($item) use ($displayDate) {
-            return $item->created_at->format('Y-m-d') === $displayDate;
+         $selectedDayResults = $allResults->filter(function ($item) use ($selectedDate) {
+            return $item->date === $selectedDate;
         })->values();
 
         // ===== 的中（表示日） =====
