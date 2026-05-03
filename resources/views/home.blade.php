@@ -2,7 +2,7 @@
 
 @section('content')
 
-
+@vite(['resources/css/home/home.css', 'resources/js/home/home.js'])
 <link rel="manifest" href="/manifest.json">
 
 <meta name="theme-color" content="#317EFB">
@@ -95,5 +95,5 @@
         </div>
     @endforeach
 </div>
-@vite(['resources/css/home/home.css', 'resources/js/home/home.js'])
+
 @endsection
