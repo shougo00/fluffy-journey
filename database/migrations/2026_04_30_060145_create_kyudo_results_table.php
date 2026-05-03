@@ -18,8 +18,12 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
+            // ★追加：日付（これが今回の主役）
+            $table->date('date');
+
             // 会から離れまでの時間 ms
             $table->integer('kai_time');
+
             $table->float('right_elbow_angle')->nullable();
             $table->float('right_armpit_angle')->nullable();
             $table->float('left_armpit_angle')->nullable();

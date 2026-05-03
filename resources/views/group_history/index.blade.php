@@ -83,6 +83,13 @@
 .score-line:last-child {
     border-bottom: none;
 }
+.active-score {
+    background: #fff3cd;
+    font-weight: bold;
+    border-radius: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
 
 @media (max-width: 600px) {
     .rank-card {
@@ -98,11 +105,20 @@
 
 <div class="history-page">
 
-    <h2>{{ $group->name }} 的中数ランキング</h2>
+    <h3>{{ $group->name }} 的中率ランキング</h3>
 
     <form method="GET" class="filter-box">
         <div class="row g-2">
-            <div class="col-6">
+            <div class="col-12 col-md-4">
+                <label class="form-label">集計</label>
+                <select name="score_type" class="form-select" onchange="this.form.submit()">
+                    <option value="all" {{ $scoreType === 'all' ? 'selected' : '' }}>総合</option>
+                    <option value="official" {{ $scoreType === 'official' ? 'selected' : '' }}>正規練</option>
+                    <option value="self" {{ $scoreType === 'self' ? 'selected' : '' }}>自主練</option>
+                </select>
+            </div>
+
+            <div class="col-12 col-md-4">
                 <label class="form-label">期間</label>
                 <select name="period" class="form-select" onchange="this.form.submit()">
                     <option value="today" {{ $period === 'today' ? 'selected' : '' }}>今日</option>
@@ -112,7 +128,7 @@
                 </select>
             </div>
 
-            <div class="col-6">
+            <div class="col-12 col-md-4">
                 <label class="form-label">表示人数</label>
                 <select name="limit" class="form-select" onchange="this.form.submit()">
                     <option value="5" {{ (string)$limit === '5' ? 'selected' : '' }}>上位5人</option>
@@ -127,9 +143,10 @@
     <div class="section-title">男子の部</div>
 
     @forelse ($maleRanking as $index => $row)
-        @include('group_history.partials.rank_card', [
+       @include('group_history.partials.rank_card', [
             'rank' => $index + 1,
-            'row' => $row
+            'row' => $row,
+            'scoreType' => $scoreType
         ])
     @empty
         <p>男子の記録はありません。</p>
@@ -140,7 +157,8 @@
     @forelse ($femaleRanking as $index => $row)
         @include('group_history.partials.rank_card', [
             'rank' => $index + 1,
-            'row' => $row
+            'row' => $row,
+            'scoreType' => $scoreType
         ])
     @empty
         <p>女子の記録はありません。</p>

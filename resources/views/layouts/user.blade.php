@@ -269,8 +269,8 @@
                     グループ記録
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="#"
+            <li class="nav-item mb-2">
+                <a class="nav-link" href="#"
                 onclick="goGroupHistory()">
                     グループ履歴
                 </a>

@@ -22,8 +22,8 @@ class KyudoResultPageController extends Controller
 
         $allResults = $query->orderBy('created_at', 'desc')->get();
 
-        $todayResults = $allResults->filter(function ($item) {
-            return $item->created_at->isToday();
+       $todayResults = $allResults->filter(function ($item) {
+            return $item->date === now()->format('Y-m-d');
         });
 
         // ===== 的中（今日） =====
@@ -43,10 +43,12 @@ class KyudoResultPageController extends Controller
 
         $previousDate = null;
 
+        $previousDate = null;
+
         if ($selectedDate === now()->format('Y-m-d')) {
             $previousResult = $allResults
                 ->filter(function ($item) {
-                    return $item->created_at->format('Y-m-d') < now()->format('Y-m-d')
+                    return $item->date < now()->format('Y-m-d')
                         && !is_null($item->right_elbow_angle)
                         && !is_null($item->right_armpit_angle)
                         && !is_null($item->left_armpit_angle)
@@ -65,8 +67,43 @@ class KyudoResultPageController extends Controller
         }
 
         // ===== 角度データ（表示日） =====
-         $selectedDayResults = $allResults->filter(function ($item) use ($selectedDate) {
+        // ===== 表示日決定 =====
+        $selectedDate = Carbon::parse($date)->format('Y-m-d');
+        $todayDate = now()->format('Y-m-d');
+
+        $previousDate = null;
+
+        // 上のサマリー用
+        $summaryDate = $selectedDate;
+
+        // 今日を選択している場合だけ、前回記録を探す
+        if ($selectedDate === $todayDate) {
+            $previousResult = $allResults
+                ->filter(function ($item) use ($todayDate) {
+                    return $item->date < $todayDate
+                        && !is_null($item->right_elbow_angle)
+                        && !is_null($item->right_armpit_angle)
+                        && !is_null($item->left_armpit_angle)
+                        && !is_null($item->kai_time);
+                })
+                ->sortByDesc('date')
+                ->sortByDesc('created_at')
+                ->first();
+
+            if ($previousResult) {
+                $previousDate = $previousResult->date;
+                $summaryDate = $previousDate;
+            }
+        }
+
+        // ===== 下の一覧：選択日の記録 =====
+        $selectedDayResults = $allResults->filter(function ($item) use ($selectedDate) {
             return $item->date === $selectedDate;
+        })->values();
+
+        // ===== 上の比較カード：今日なら前回、今日以外なら選択日 =====
+        $summaryResults = $allResults->filter(function ($item) use ($summaryDate) {
+            return $item->date === $summaryDate;
         })->values();
 
         // ===== 的中（表示日） =====
@@ -105,21 +142,15 @@ class KyudoResultPageController extends Controller
         }
 
         // ===== ポーズ記録がある日 =====
-        $poseRecordDates = KyudoResult::where('user_id', auth()->id())
-            ->whereBetween('created_at', [
-                Carbon::parse($month . '-01')->startOfMonth(),
-                Carbon::parse($month . '-01')->endOfMonth(),
-            ])
-            ->get()
-            ->groupBy(fn($item) => $item->created_at->format('Y-m-d'))
-            ->keys()
-            ->toArray();
-
+            $poseRecordDates = KyudoResult::where('user_id', auth()->id())
+                ->whereBetween('date', [$monthStart, $monthEnd])
+                ->get()
+                ->groupBy('date')
+                ->keys()
+                ->toArray();
         return view('kyudo_results.index', [
             'date' => $date,
             'todaySummary' => $this->makeSummary($todayResults),
-            'selectedDaySummary' => $this->makeSummary($selectedDayResults),
-            'results' => $selectedDayResults,
 
             'todayShots' => $todayShots,
             'todayHits' => $todayHits,
@@ -135,7 +166,9 @@ class KyudoResultPageController extends Controller
             'calendar' => $calendar,
             'poseRecordDates' => $poseRecordDates,
 
-            'displayDate' => $displayDate,
+            'selectedDaySummary' => $this->makeSummary($summaryResults),
+            'results' => $selectedDayResults,
+            'displayDate' => $summaryDate,
             'hasPreviousRecord' => $previousDate !== null,
         ]);
     }

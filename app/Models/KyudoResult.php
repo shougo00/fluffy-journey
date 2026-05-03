@@ -8,6 +8,7 @@ class KyudoResult extends Model
 {
     protected $fillable = [
         'user_id',
+        'date',
         'kai_time',
         'right_elbow_angle',
         'right_armpit_angle',

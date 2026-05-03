@@ -18,6 +18,7 @@ class KyudoResultController extends Controller
 
         KyudoResult::create([
             'user_id' => auth()->id(),
+            'date' => now()->format('Y-m-d'),
             'kai_time' => $request->kai_time,
             'right_elbow_angle' => $request->right_elbow_angle,
             'right_armpit_angle' => $request->right_armpit_angle,

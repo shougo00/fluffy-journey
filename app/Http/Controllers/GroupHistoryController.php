@@ -9,8 +9,9 @@ use Illuminate\Http\Request;
 
 class GroupHistoryController extends Controller
 {
-    public function index(Request $request, Group $group)
+   public function index(Request $request, Group $group)
     {
+        $scoreType = $request->input('score_type', 'all');
         $period = $request->input('period', 'today');
         $limit = $request->input('limit', 10);
 
@@ -24,44 +25,53 @@ class GroupHistoryController extends Controller
                 ->whereBetween('date', [$start, $end])
                 ->get();
 
-            $all = $this->calc($records);
-            $official = $this->calc($records->where('practice_type', 'official'));
-            $self = $this->calc($records->where('practice_type', 'self'));
-
             return [
                 'user' => $user,
-                'all' => $all,
-                'official' => $official,
-                'self' => $self,
+                'all' => $this->calc($records),
+                'official' => $this->calc($records->where('practice_type', 'official')),
+                'self' => $this->calc($records->where('practice_type', 'self')),
             ];
-        })
-        ->sortByDesc(function ($row) {
-            return $row['all']['hits'];
-        })
-        ->values();
+        });
 
-        if ($limit !== 'all') {
-            $ranking = $ranking->take((int) $limit);
-        }
+        $sortRanking = function ($items) use ($limit, $scoreType) {
+            $items = $items
+                ->sort(function ($a, $b) use ($scoreType) {
+                    if ($a[$scoreType]['rate'] == $b[$scoreType]['rate']) {
+                        return $b[$scoreType]['hits'] <=> $a[$scoreType]['hits'];
+                    }
 
-        // 性別カラムが male / female 想定
-        $maleRanking = $ranking->filter(function ($row) {
-            return $row['user']->gender === 'male';
-        })->values();
+                    return $b[$scoreType]['rate'] <=> $a[$scoreType]['rate'];
+                })
+                ->values();
 
-        $femaleRanking = $ranking->filter(function ($row) {
-            return $row['user']->gender === 'female';
-        })->values();
+            if ($limit !== 'all') {
+                $items = $items->take((int) $limit)->values();
+            }
+
+            return $items;
+        };
+
+        $maleRanking = $sortRanking(
+            $ranking->filter(function ($row) {
+                return $row['user']->gender === 'male';
+            })
+        );
+
+        $femaleRanking = $sortRanking(
+            $ranking->filter(function ($row) {
+                return $row['user']->gender === 'female';
+            })
+        );
 
         return view('group_history.index', compact(
             'group',
             'period',
             'limit',
+            'scoreType',
             'maleRanking',
             'femaleRanking'
         ));
     }
-
     private function calc($records)
     {
         $shots = $records->sum(function ($record) {

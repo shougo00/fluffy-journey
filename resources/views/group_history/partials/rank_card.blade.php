@@ -22,7 +22,7 @@
     <div class="rank-info">
         <div class="user-name">{{ $row['user']->name }}</div>
 
-        <div class="score-line">
+        <div class="score-line {{ $scoreType === 'all' ? 'active-score' : '' }}">
             <span>総合</span>
             <span>
                 {{ $row['all']['shots'] }}射
@@ -31,7 +31,7 @@
             </span>
         </div>
 
-        <div class="score-line">
+        <div class="score-line {{ $scoreType === 'official' ? 'active-score' : '' }}">
             <span>正規練</span>
             <span>
                 {{ $row['official']['shots'] }}射
@@ -40,7 +40,7 @@
             </span>
         </div>
 
-        <div class="score-line">
+        <div class="score-line {{ $scoreType === 'self' ? 'active-score' : '' }}">
             <span>自主練</span>
             <span>
                 {{ $row['self']['shots'] }}射
