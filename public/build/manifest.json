@@ -8,6 +8,15 @@
       "app.css"
     ]
   },
+  "resources/css/camera/camera.css": {
+    "file": "assets/camera-BWbF9OIS.css",
+    "src": "resources/css/camera/camera.css",
+    "isEntry": true,
+    "name": "camera",
+    "names": [
+      "camera.css"
+    ]
+  },
   "resources/js/app.js": {
     "file": "assets/app-CiZ6hk-B.js",
     "name": "app",
