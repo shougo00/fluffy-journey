@@ -14,7 +14,11 @@ export default defineConfig({
                 'resources/js/group/records.js',
                 'resources/css/kyudo_results/index.css',
                 'resources/css/lineup/index.css',
-                'resources/css/group/records.css'
+                'resources/css/group/records.css',
+                'resources/js/home/home.js',
+                'resources/css/dashboard/dashboard.css',
+                'resources/js/dashboard/dashboard.js',
+                'resources/css/home/home.css'
             ],
             refresh: true,
         }),
