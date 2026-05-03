@@ -2,61 +2,7 @@
 
 @section('content')
 
-<style>
-.monthly-page {
-    max-width: 900px;
-    margin: 16px auto;
-    padding: 10px;
-}
-
-.month-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.month-title {
-    font-size: 20px;
-    font-weight: bold;
-    text-align: center;
-}
-
-.record-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-}
-
-.user-name {
-    font-weight: bold;
-    margin-bottom: 8px;
-}
-
-.score-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 14px;
-}
-
-.no-record {
-    color: #999;
-}
-
-@media (max-width: 600px) {
-    .month-title {
-        font-size: 17px;
-    }
-
-    .score-row {
-        font-size: 13px;
-    }
-}
-</style>
-
+@vite(['resources/css/group_history/monthly.css', 'resources/js/app.js'])
 <div class="monthly-page">
 
     <h3>{{ $group->name }} 月間記録</h3>
