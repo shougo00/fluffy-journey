@@ -70,11 +70,7 @@ class GroupRecordController extends Controller
             ->values();
 
         if ($users->isNotEmpty() && $tates->isNotEmpty()) {
-            foreach ($tates as $tateNo) {
-                foreach ($users as $user) {
-                    $this->ensureRecordWithShots($user->id, $date, $tateNo);
-                }
-            }
+            $this->ensureRecordsWithShots($userIds, $date, $tates);
         }
 
         $records = Record::with('shots')
@@ -170,9 +166,7 @@ class GroupRecordController extends Controller
 
         $newTate = $maxTate ? $maxTate + 1 : 1;
 
-        foreach ($users as $user) {
-            $this->ensureRecordWithShots($user->id, $date, $newTate);
-        }
+        $this->ensureRecordsWithShots($userIds, $date, collect([$newTate]));
 
         return redirect("/group/{$groupId}/records?date={$date}");
     }
@@ -224,24 +218,89 @@ class GroupRecordController extends Controller
         }
     }
 
-    private function ensureRecordWithShots($userId, $date, $tateNo): Record
+    private function ensureRecordsWithShots($userIds, $date, $tateNos): void
     {
-        $record = Record::firstOrCreate([
-            'user_id' => $userId,
-            'date' => $date,
-            'tate_no' => $tateNo,
-            'practice_type' => 'official'
-        ]);
+        $userIds = collect($userIds)->values();
+        $tateNos = collect($tateNos)->values();
 
-        for ($i = 1; $i <= 4; $i++) {
-            Shot::firstOrCreate([
-                'record_id' => $record->id,
-                'shot_no' => $i
-            ], [
-                'result' => null
-            ]);
+        if ($userIds->isEmpty() || $tateNos->isEmpty()) {
+            return;
         }
 
-        return $record;
+        // ===== 既存Recordをまとめて取得 =====
+        $existingRecords = Record::whereIn('user_id', $userIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->whereIn('tate_no', $tateNos)
+            ->get();
+
+        $existingKeys = $existingRecords
+            ->map(fn($r) => $r->user_id . '-' . $r->tate_no)
+            ->toArray();
+
+        $recordInserts = [];
+        $now = now();
+
+        foreach ($userIds as $userId) {
+            foreach ($tateNos as $tateNo) {
+                $key = $userId . '-' . $tateNo;
+
+                if (!in_array($key, $existingKeys)) {
+                    $recordInserts[] = [
+                        'user_id' => $userId,
+                        'date' => $date,
+                        'tate_no' => $tateNo,
+                        'practice_type' => 'official',
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+        }
+
+        // ===== 足りないRecordをまとめて作成 =====
+        if (!empty($recordInserts)) {
+            Record::insert($recordInserts);
+        }
+
+        // ===== Recordを再取得 =====
+        $records = Record::whereIn('user_id', $userIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->whereIn('tate_no', $tateNos)
+            ->get();
+
+        $recordIds = $records->pluck('id');
+
+        // ===== 既存Shotをまとめて取得 =====
+        $existingShots = Shot::whereIn('record_id', $recordIds)
+            ->get();
+
+        $existingShotKeys = $existingShots
+            ->map(fn($s) => $s->record_id . '-' . $s->shot_no)
+            ->toArray();
+
+        $shotInserts = [];
+
+        foreach ($records as $record) {
+            for ($i = 1; $i <= 4; $i++) {
+                $key = $record->id . '-' . $i;
+
+                if (!in_array($key, $existingShotKeys)) {
+                    $shotInserts[] = [
+                        'record_id' => $record->id,
+                        'shot_no' => $i,
+                        'result' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+            }
+        }
+
+        // ===== 足りないShotをまとめて作成 =====
+        if (!empty($shotInserts)) {
+            Shot::insert($shotInserts);
+        }
     }
 }

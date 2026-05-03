@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<title>Kyudo Stats</title>
+<title>Kyudo Score</title>
 
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -120,7 +120,7 @@
         @endauth
 
         <i class="bi bi-journal-bookmark-fill text-primary fs-3 me-2"></i>
-        <span class="fw-bold text-dark">Kyudo Stats</span>
+        <span class="fw-bold text-dark">Kyudo Score</span>
     </div>
 
 
@@ -152,7 +152,7 @@
                     </a>
                 @endif
             @endauth
-            <span class="fw-bold text-dark ms-1">Kyudo Stats</span>
+            <span class="fw-bold text-dark ms-1">Kyudo Score</span>
         </div>
 
         <!-- 右（ハンバーガー） -->

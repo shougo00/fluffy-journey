@@ -36,11 +36,16 @@ class GroupHistoryController extends Controller
         // ===== ランキング用 =====
         [$start, $end] = $this->periodRange($period);
 
-        $ranking = $members->map(function ($user) use ($start, $end) {
-            $records = Record::with('shots')
-                ->where('user_id', $user->id)
-                ->whereBetween('date', [$start, $end])
-                ->get();
+        $memberIds = $members->pluck('id');
+
+        $rankingSourceRecords = Record::with('shots')
+            ->whereIn('user_id', $memberIds)
+            ->whereBetween('date', [$start, $end])
+            ->get()
+            ->groupBy('user_id');
+
+        $ranking = $members->map(function ($user) use ($rankingSourceRecords) {
+            $records = $rankingSourceRecords->get($user->id, collect());
 
             return [
                 'user' => $user,
