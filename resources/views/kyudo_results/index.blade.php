@@ -2,7 +2,7 @@
 
 @section('content')
 
-@vite(['resources/css/kyudo_results/index.css', 'resources/js/app.js'])
+@vite(['resources/css/kyudo_results/index.css'])
 
 <div class="result-page">
     
