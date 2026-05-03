@@ -17,7 +17,10 @@ class GroupHistoryController extends Controller
 
         [$start, $end] = $this->periodRange($period);
 
-        $members = $group->users()->with('avatar')->get();
+        $members = $group->users()
+        ->where('is_admin', false)
+        ->with('avatar')
+        ->get();
 
         $ranking = $members->map(function ($user) use ($start, $end) {
             $records = Record::with('shots')

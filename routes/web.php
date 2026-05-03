@@ -34,14 +34,7 @@ Route::middleware([ 'verified'])->group(function () {
     Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
-    Route::middleware(['auth'])->get('/home', function () {
-        $news = \App\Models\News::where('is_published', true)
-            ->latest()
-            ->take(5)
-            ->get();
-
-        return view('home', compact('news'));
-    })->name('home');
+   Route::get('/home', [RecordController::class, 'index'])->name('home');
 
     Route::resource('news', NewsController::class)->except(['show']);
 
@@ -103,6 +96,37 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/group/{group}/history', [GroupHistoryController::class, 'index'])
         ->name('group.history')
         ->middleware('auth');
+
+    //タブレット設定時指定ページに飛ばす処理
+    Route::get('/dashboard', function () {
+        if (auth()->check() && auth()->user()->is_admin) {
+
+                $groupId = auth()->user()->groups->first()->id ?? null;
+
+                if ($groupId) {
+                    return redirect()->route('group.history', ['group' => $groupId]);
+                }
+
+                // グループ無い場合の逃げ道
+                return redirect()->route('groups');
+            }
+
+            return app(\App\Http\Controllers\RecordController::class)->dashboard(request());
+    })->name('dashboard');
+    Route::get('/home', function () {
+        if (auth()->check() && auth()->user()->is_admin) {
+
+            $groupId = auth()->user()->groups->first()->id ?? null;
+
+            if ($groupId) {
+                return redirect()->route('group.history', ['group' => $groupId]);
+            }
+
+            return redirect()->route('groups');
+        }
+
+        return app(\App\Http\Controllers\RecordController::class)->index(request());
+    })->name('home')->middleware('auth');
 
 // 4️⃣ 認証ルート
 require __DIR__.'/auth.php';

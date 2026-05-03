@@ -13,7 +13,9 @@ class LineupController extends Controller
     {
         $this->checkGroupAccess($groupId);
 
-        $group = Group::with('users')->findOrFail($groupId);
+        $group = Group::with(['users' => function ($q) {
+            $q->where('is_admin', false);
+        }])->findOrFail($groupId);
         $date = $request->date ?? date('Y-m-d');
 
         $lineup = Lineup::firstOrCreate(
@@ -28,7 +30,13 @@ class LineupController extends Controller
 
         $this->syncLineupMembers($lineup, $group);
 
-        $members = $lineup->members()->with('user')->get();
+        $members = $lineup->members()
+        ->with('user')
+        ->whereHas('user', function ($q) {
+            $q->where('is_admin', false);
+        })
+        ->orderByRaw('position IS NULL, position ASC')
+        ->get();
 
         return view('lineup.index', compact('group', 'lineup', 'members', 'date'));
     }
@@ -62,10 +70,13 @@ class LineupController extends Controller
         $this->checkGroupAccess($lineup->group_id);
 
         $members = LineupMember::where('lineup_id', $lineupId)
-            ->where('is_absent', false)
-            ->get()
-            ->shuffle()
-            ->values();
+        ->where('is_absent', false)
+        ->whereHas('user', function ($q) {
+            $q->where('is_admin', false);
+        })
+        ->get()
+        ->shuffle()
+        ->values();
 
         foreach ($members as $i => $m) {
             $m->update([

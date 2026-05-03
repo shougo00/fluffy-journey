@@ -166,37 +166,51 @@
 
     {{-- PCメニュー --}}
     <div class="collapse navbar-collapse d-none d-lg-flex">
-        <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-                <a class="nav-link active" href="{{ route('home') }}">　 的中記録</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="{{ route('dashboard') }}"> 的中履歴</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="#"
-                onclick="goGroupRecord()">
-                    グループ記録
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="#"
-                onclick="goGroupHistory()">
-                    グループ履歴
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="{{ route('groups') }}"> グループ設定</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="#"
-                onclick="goAttendance()">
-                    出欠確認
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" href="{{ route('camera') }}"> カメラ</a>
-            </li>
+         <ul class="navbar-nav me-auto">
+            @auth
+
+                {{-- 管理者じゃない人（＝通常ユーザー）は全部表示 --}}
+                @if(!Auth::user()->is_admin)
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ route('home') }}">的中記録</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ route('dashboard') }}">的中履歴</a>
+                    </li>
+                @endif
+
+                {{-- 全員共通 --}}
+                <li class="nav-item">
+                    <a class="nav-link active" href="#"
+                    onclick="goGroupRecord()">グループ記録</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link active" href="#"
+                    onclick="goGroupHistory()">グループ履歴</a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ route('groups') }}">
+                        グループ設定
+                    </a>
+                </li>
+
+                {{-- 👇 ここから通常ユーザーのみ --}}
+                @if(!Auth::user()->is_admin)
+
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#"
+                        onclick="goAttendance()">出欠確認</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ route('camera') }}">カメラ</a>
+                    </li>
+
+                @endif
+
+            @endauth
         </ul>
 
         <ul class="navbar-nav ms-auto align-items-center">
@@ -256,40 +270,58 @@
             </div>
         @endauth
 
-        <ul class="navbar-nav">
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="{{ route('home') }}">的中記録</a>
-            </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="{{ route('dashboard') }}">的中履歴</a>
-            </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="#"
-                onclick="goGroupRecord()">
-                    グループ記録
-                </a>
-            </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="#"
-                onclick="goGroupHistory()">
-                    グループ履歴
-                </a>
-            </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="{{ route('groups') }}">グループ設定</a>
-            </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="#"
-                onclick="goAttendance()">
-                    出欠確認
-                </a>
-            </li>
-            <li class="nav-item mb-2">
-                <a class="nav-link" href="{{ route('camera') }}">カメラ</a>
-            </li>
-
+       <ul class="navbar-nav">
 
             @auth
+
+                {{-- 管理者じゃない人だけ --}}
+                @if(!Auth::user()->is_admin)
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{{ route('home') }}">的中記録</a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{{ route('dashboard') }}">的中履歴</a>
+                    </li>
+                @endif
+
+                {{-- 全員共通 --}}
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="#" onclick="goGroupRecord()">
+                        グループ記録
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="#" onclick="goGroupHistory()">
+                        グループ履歴
+                    </a>
+                </li>
+
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{{ route('groups') }}">
+                        グループ設定
+                    </a>
+                </li>
+
+                {{-- 👇 一般ユーザーだけ表示 --}}
+                @if(!Auth::user()->is_admin)
+
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="#" onclick="goAttendance()">
+                            出欠確認
+                        </a>
+                    </li>
+
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{{ route('camera') }}">
+                            カメラ
+                        </a>
+                    </li>
+
+                @endif
+
+                {{-- プロフィール（全員OK） --}}
                 <li class="nav-item mb-2">
                     <a class="nav-link" href="{{ route('avatar.show') }}">アバター</a>
                 </li>
@@ -304,11 +336,13 @@
                         <button class="btn btn-danger w-100">ログアウト</button>
                     </form>
                 </li>
+
             @else
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('login') }}">ログイン</a>
                 </li>
             @endauth
+
         </ul>
     </div>
 </div>

@@ -24,9 +24,10 @@ class ProfileUpdateRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
+                
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-
+            'is_admin' => ['nullable', 'boolean'],
             'gender' => ['required', 'in:male,female'],
         ];
     }

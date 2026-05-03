@@ -15,21 +15,13 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-        public function edit(Request $request): View
+    public function edit(Request $request): View
     {
         $user = $request->user();
 
-        if ($user->is_admin) {
-            // 管理者用ビュー
-            return view('profile.edit_admin', [
-                'user' => $user,
-            ]);
-        } else {
-            // 一般ユーザー用ビュー
-            return view('profile.edit_user', [
-                'user' => $user,
-            ]);
-        }
+        return view('profile.edit_user', [
+            'user' => $user,
+        ]);
     }
 
     /**
@@ -37,17 +29,21 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $user->fill($request->validated());
+
+        // ホストユーザーON/OFF保存
+        $user->is_admin = $request->boolean('is_admin');
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
-
     /**
      * Delete the user's account.
      */

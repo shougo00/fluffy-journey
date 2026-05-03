@@ -45,6 +45,10 @@ class GroupController extends Controller
             'group_id' => $group->id,
             'user_id' => auth()->id(),
         ]);
+        // 作成者をホストユーザーにする
+        auth()->user()->update([
+            'is_admin' => true,
+        ]);
 
         return redirect('/groups');
     }
@@ -96,6 +100,11 @@ class GroupController extends Controller
             ->where('group_id', $group->id)
             ->where('user_id', $userId)
             ->delete();
+        
+        // グループを抜けたら一般ユーザーに戻す
+        auth()->user()->update([
+            'is_admin' => false,
+        ]);
 
         return redirect('/groups')->with('success', 'グループを抜けました');
     }
