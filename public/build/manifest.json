@@ -26,6 +26,15 @@
       "index.css"
     ]
   },
+  "resources/css/group_history/monthly.css": {
+    "file": "assets/monthly-V-sVcth4.css",
+    "src": "resources/css/group_history/monthly.css",
+    "isEntry": true,
+    "name": "monthly",
+    "names": [
+      "monthly.css"
+    ]
+  },
   "resources/js/app.js": {
     "file": "assets/app-CiZ6hk-B.js",
     "name": "app",
