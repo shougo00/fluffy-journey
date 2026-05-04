@@ -45,7 +45,7 @@
     </form>
 
     {{-- カレンダー --}}
-    <div id="calendarBox" class="record-calendar-box">
+    <div id="calendarBox" style="{{ request('open') ? 'display:block;' : 'display:none;' }}">
 
         <div class="month-nav">
             <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($prevMonth . '-01')->format('Y-m-d') }}&month={{ $prevMonth }}&open=1"
