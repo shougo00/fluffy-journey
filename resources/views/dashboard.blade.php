@@ -26,7 +26,6 @@ window.historyPageData = {
 <style>
     html, body {
     overscroll-behavior: none;
-    touch-action: manipulation;
     }
 </style>
 
