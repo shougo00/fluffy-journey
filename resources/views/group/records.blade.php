@@ -288,20 +288,14 @@
 </div>
 
 <style>
+/* ===== PC（デフォルト） ===== */
 html, body {
-    height: 100%;
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
-}
-body {
-    overscroll-behavior: none;
+    height: auto;
+    overflow: auto;
 }
 
 .container {
     max-width: 100%;
-    height: 100dvh;
-    overflow: hidden;
 }
 
 .score-scroll {
@@ -310,9 +304,35 @@ body {
     border: 1px solid #eee;
     -webkit-overflow-scrolling: touch;
     touch-action: auto;
-     overscroll-behavior: contain;
 }
 
+/* ===== スマホ・タブレットだけ適用 ===== */
+@media (max-width: 1024px) {
+
+    html, body {
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+
+    body {
+        overscroll-behavior: none;
+    }
+
+    .container {
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    .score-scroll {
+        height: calc(100dvh - 230px);
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x pan-y;
+        overscroll-behavior: contain;
+    }
+}
 .score-wrapper {
     min-width: max-content;
 }
