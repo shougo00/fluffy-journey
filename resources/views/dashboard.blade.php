@@ -24,6 +24,7 @@ window.historyPageData = {
 @vite(['resources/css/dashboard/dashboard.css', 'resources/js/dashboard/dashboard.js'])
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
+
 <div class="container py-2">
 
     <!-- 今日 & 月間 & 年間 -->
