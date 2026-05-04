@@ -289,8 +289,10 @@
 
 <style>
 html, body {
-    height: auto;
-    overflow: auto;
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
 }
 body {
     overscroll-behavior: none;
@@ -298,6 +300,8 @@ body {
 
 .container {
     max-width: 100%;
+    height: 100dvh;
+    overflow: hidden;
 }
 
 .score-scroll {
@@ -309,9 +313,6 @@ body {
      overscroll-behavior: contain;
 }
 
-.score-wrapper {
-    min-width: max-content;
-}
 .score-wrapper {
     min-width: max-content;
 }
