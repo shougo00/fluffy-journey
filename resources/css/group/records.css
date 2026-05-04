@@ -1,9 +1,10 @@
 html, body {
     height: auto;
     overflow: auto;
+}
+body {
     overscroll-behavior: none;
 }
-
 
 .record-page {
     max-width: 100%;
