@@ -289,27 +289,25 @@
 
 <style>
 html, body {
-    height: 100%;
-    overflow: hidden;
+    height: auto;
+    overflow: auto;
 }
 
 .container {
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    max-width: 100%;
 }
 
 .score-scroll {
-    flex: 1;
-    min-height: 0;
+    height: calc(100dvh - 230px);
     overflow: auto;
     border: 1px solid #eee;
-
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
+    touch-action: auto;
 }
 
+.score-wrapper {
+    min-width: max-content;
+}
 .score-wrapper {
     min-width: max-content;
 }
