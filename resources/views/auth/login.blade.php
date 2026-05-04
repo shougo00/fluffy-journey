@@ -26,11 +26,11 @@ html, body {
 }
 </style>
 <script>
-// window.addEventListener('pageshow', function (event) {
-//     if (event.persisted) {
-//         window.location.reload();
-//     }
-// });
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
 </script>
 <body class="bg-light">
 
