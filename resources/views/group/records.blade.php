@@ -291,7 +291,6 @@
 html, body {
     height: 100%;
     overflow: hidden;
-    overscroll-behavior: none;
 }
 
 .container {
@@ -309,7 +308,6 @@ html, body {
 
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y;
-    overscroll-behavior: contain;
 }
 
 .score-wrapper {
