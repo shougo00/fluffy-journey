@@ -291,7 +291,27 @@
 html, body {
     height: 100%;
     overflow: hidden;
+    overscroll-behavior: none;
 }
+
+.container {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.score-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: 1px solid #eee;
+
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior: contain;
+}
+
 
 .score-scroll {
     height: calc(85dvh - 200px);
@@ -439,9 +459,6 @@ html, body {
 }
 
 @media (max-width: 600px) {
-    .score-scroll {
-        height: calc(85dvh - 210px);
-    }
 
     .user-column {
         width: 55px;
