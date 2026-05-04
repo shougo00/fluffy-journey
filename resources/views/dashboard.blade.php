@@ -19,8 +19,9 @@ window.historyPageData = {
     currentMonth: @json($month)
 };
 </script>
-@vite(['resources/css/dashboard/dashboard.css', 'resources/js/dashboard/dashboard.js'])
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+@vite(['resources/css/dashboard/dashboard.css', 'resources/js/dashboard/dashboard.js'])
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 

@@ -14,6 +14,7 @@ export default defineConfig({
                 'resources/js/group/records.js',
                 'resources/css/kyudo_results/index.css',
                 'resources/css/lineup/index.css',
+                'resources/js/lineup/index.js',
                 'resources/css/group/records.css',
                 'resources/js/home/home.js',
                 'resources/css/dashboard/dashboard.css',

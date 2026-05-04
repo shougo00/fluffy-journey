@@ -161,5 +161,7 @@ function renderAll(){
     updateMonthLinks();
 }
 
-renderAll();
-window.changeType = changeType;
+document.addEventListener('DOMContentLoaded', () => {
+    renderAll();
+    window.changeType = changeType;
+});

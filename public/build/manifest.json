@@ -88,7 +88,7 @@
     "isEntry": true
   },
   "resources/js/dashboard/dashboard.js": {
-    "file": "assets/dashboard-7egPou5F.js",
+    "file": "assets/dashboard-CeHlRyaX.js",
     "name": "dashboard",
     "src": "resources/js/dashboard/dashboard.js",
     "isEntry": true
@@ -103,6 +103,12 @@
     "file": "assets/home-Gw5F2RGt.js",
     "name": "home",
     "src": "resources/js/home/home.js",
+    "isEntry": true
+  },
+  "resources/js/lineup/index.js": {
+    "file": "assets/index-DTNeNNKM.js",
+    "name": "index",
+    "src": "resources/js/lineup/index.js",
     "isEntry": true
   }
 }
