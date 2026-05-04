@@ -103,5 +103,17 @@
                 </script>
             @endif
         </div>
+       <hr class="my-4">
+
+        
     </form>
+    <div class="text-center">
+        <form method="POST" action="{{ route('logout') }}"
+            onsubmit="return confirm('ログアウトしますか？');">
+            @csrf
+            <button class="btn btn-outline-danger px-4">
+                ログアウト
+            </button>
+        </form>
+    </div>
 </section>

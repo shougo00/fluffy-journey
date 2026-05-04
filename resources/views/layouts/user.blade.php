@@ -221,12 +221,6 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="{{ route('profile.edit') }}">プロフィール</a></li>
-                        <li>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button class="dropdown-item">ログアウト</button>
-                            </form>
-                        </li>
                     </ul>
                 </li>
             @else
@@ -328,13 +322,6 @@
 
                 <li class="nav-item mb-2">
                     <a class="nav-link" href="{{ route('profile.edit') }}">プロフィール</a>
-                </li>
-
-                <li class="nav-item">
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button class="btn btn-danger w-100">ログアウト</button>
-                    </form>
                 </li>
 
             @else

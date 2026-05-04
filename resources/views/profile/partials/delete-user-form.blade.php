@@ -1,4 +1,6 @@
 <section class="space-y-6">
+
+
 <!-- 削除ボタン -->
 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmUserDeletion">
     アカウントを削除
