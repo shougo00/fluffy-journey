@@ -301,7 +301,7 @@ body {
 }
 
 .score-scroll {
-    height: calc(100dvh - 200px);
+    height: calc(100dvh - 280px);
     overflow: auto;
     border: 1px solid #eee;
     -webkit-overflow-scrolling: touch;
