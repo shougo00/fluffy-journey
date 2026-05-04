@@ -312,13 +312,6 @@ html, body {
     overscroll-behavior: contain;
 }
 
-
-.score-scroll {
-    height: calc(85dvh - 200px);
-    overflow: auto;
-    border: 1px solid #eee;
-}
-
 .score-wrapper {
     min-width: max-content;
 }
