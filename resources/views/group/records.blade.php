@@ -292,6 +292,9 @@ html, body {
     height: auto;
     overflow: auto;
 }
+body {
+    overscroll-behavior: none;
+}
 
 .container {
     max-width: 100%;
@@ -303,6 +306,7 @@ html, body {
     border: 1px solid #eee;
     -webkit-overflow-scrolling: touch;
     touch-action: auto;
+     overscroll-behavior: contain;
 }
 
 .score-wrapper {
