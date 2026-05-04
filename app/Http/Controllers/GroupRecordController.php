@@ -97,6 +97,21 @@ class GroupRecordController extends Controller
                 }
             }
         }
+        $month = $request->month ?? \Carbon\Carbon::parse($date)->format('Y-m');
+
+        $prevMonth = \Carbon\Carbon::parse($month . '-01')->subMonth()->format('Y-m');
+        $nextMonth = \Carbon\Carbon::parse($month . '-01')->addMonth()->format('Y-m');
+
+        $lineupDates = Lineup::where('group_id', $groupId)
+            ->whereYear('date', \Carbon\Carbon::parse($month . '-01')->year)
+            ->whereMonth('date', \Carbon\Carbon::parse($month . '-01')->month)
+            ->whereHas('members', function ($q) {
+                $q->where('is_absent', false)
+                ->whereNotNull('position');
+            })
+            ->pluck('date')
+            ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
 
         return view('group.records', compact(
             'group',
@@ -106,6 +121,10 @@ class GroupRecordController extends Controller
             'users',
             'hitCounts',
             'tateSize',
+            'month',
+            'prevMonth',
+            'nextMonth',
+            'lineupDates',
             'lineupSlots'
         ));
     }

@@ -19,33 +19,88 @@
     </div>
 
 </div>
-<form method="GET" action="/group/{{ $group->id }}/records" class="mb-3 text-center">
+<div class="date-calendar-wrap">
+    {{-- 日付移動 --}}
+    <form method="GET" action="/group/{{ $group->id }}/records" class="mb-2 text-center">
+        <div class="d-flex justify-content-center align-items-center gap-3">
 
-    <div class="d-flex justify-content-center align-items-center gap-3">
+            <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($date)->subDay()->format('Y-m-d') }}&month={{ \Carbon\Carbon::parse($date)->subDay()->format('Y-m') }}"
+            class="btn btn-outline-secondary">
+                ＜
+            </a>
 
-        {{-- 前日 --}}
-        <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($date)->subDay()->format('Y-m-d') }}"
-           class="btn btn-outline-secondary">
-            ＜
-        </a>
+            <input type="text"
+                value="{{ $date }}"
+                readonly
+                onclick="toggleCalendar(event)"
+                class="form-control text-center"
+                style="max-width:180px; cursor:pointer; background:white;">
 
-        {{-- カレンダー（中央） --}}
-        <input type="date"
-               name="date"
-               value="{{ $date }}"
-               onchange="this.form.submit()"
-               class="form-control text-center"
-               style="max-width:180px;">
+            <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($date)->addDay()->format('Y-m-d') }}&month={{ \Carbon\Carbon::parse($date)->addDay()->format('Y-m') }}"
+            class="btn btn-outline-secondary">
+                ＞
+            </a>
 
-        {{-- 翌日 --}}
-        <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($date)->addDay()->format('Y-m-d') }}"
-           class="btn btn-outline-secondary">
-            ＞
-        </a>
+        </div>
+    </form>
 
+    {{-- カレンダー --}}
+    <div id="calendarBox" class="record-calendar-box">
+
+        <div class="month-nav">
+            <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($prevMonth . '-01')->format('Y-m-d') }}&month={{ $prevMonth }}&open=1"
+            class="btn btn-sm btn-outline-secondary">＜</a>
+
+            <strong>{{ \Carbon\Carbon::parse($month . '-01')->format('Y年n月') }}</strong>
+
+            <a href="/group/{{ $group->id }}/records?date={{ \Carbon\Carbon::parse($nextMonth . '-01')->format('Y-m-d') }}&month={{ $nextMonth }}&open=1"
+            class="btn btn-sm btn-outline-secondary">＞</a>
+        </div>
+
+        <div class="calendar-wrapper">
+            <div class="calendar">
+                @php
+                    $weekdays = ['日','月','火','水','木','金','土'];
+                    $firstDay = \Carbon\Carbon::parse($month . '-01');
+                    $days = $firstDay->daysInMonth;
+                    $startWeek = $firstDay->dayOfWeek;
+                @endphp
+
+                @foreach($weekdays as $wd)
+                    <div class="day-header">{{ $wd }}</div>
+                @endforeach
+
+                @for($i = 0; $i < $startWeek; $i++)
+                    <div class="day empty"></div>
+                @endfor
+
+                @for($i = 1; $i <= $days; $i++)
+                    @php
+                        $dateObj = \Carbon\Carbon::parse($month . '-' . str_pad($i, 2, '0', STR_PAD_LEFT));
+                        $dayDate = $dateObj->format('Y-m-d');
+                        $dayOfWeek = $dateObj->dayOfWeek;
+
+                        $dayClass = '';
+                        if ($dayOfWeek === 0) $dayClass .= ' sunday';
+                        if ($dayOfWeek === 6) $dayClass .= ' saturday';
+                        if ($dayDate === $date) $dayClass .= ' selected';
+
+                        $hasLineup = in_array($dayDate, $lineupDates ?? []);
+                    @endphp
+
+                    <a href="/group/{{ $group->id }}/records?date={{ $dayDate }}&month={{ $month }}"
+                    class="day {{ $dayClass }} {{ $hasLineup ? 'has-lineup' : '' }}">
+                        <div class="date">{{ $i }}</div>
+
+                        @if($hasLineup)
+                            <div class="data">記録あり</div>
+                        @endif
+                    </a>
+                @endfor
+            </div>
+        </div>
     </div>
-
-</form>
+</div>
 
 <form method="POST" action="/group/{{ $group->id }}/add-tate" class="mb-3">
     @csrf
@@ -306,7 +361,7 @@ body {
     border: 1px solid #eee;
     -webkit-overflow-scrolling: touch;
     touch-action: auto;
-     overscroll-behavior: contain;
+    overscroll-behavior: contain;
 }
 
 .score-wrapper {
@@ -639,6 +694,108 @@ body {
         border-left: 2px solid #000;
     }
 }
+.record-calendar-box {
+    display: none;
+    max-width: 420px;
+    margin: 0 auto 12px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+}
+
+.month-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.calendar-wrapper {
+    overflow-x: auto;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border: 1px solid #ccc;
+}
+
+.day-header,
+.day {
+    border: 1px solid #ccc;
+    min-height: 46px;
+    padding: 3px 2px;
+    text-align: center;
+    font-size: 11px;
+}
+
+.day-header {
+    background: #f0f0f0;
+    font-weight: bold;
+    min-height: auto;
+}
+
+.day {
+    background: #fff;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.day.empty {
+    background: #f7f7f7;
+    cursor: default;
+}
+
+.day.has-lineup {
+    background: #fff3cd;
+}
+
+.day.has-lineup .data {
+    font-size: 9px;
+    color: #9a6a00;
+    font-weight: bold;
+}
+
+.day.selected {
+    background: #d1e7dd !important;
+    border: 2px solid #198754;
+}
+
+.day.sunday .date {
+    color: red;
+}
+
+.day.saturday .date {
+    color: blue;
+}
+
+.day .date {
+    font-weight: bold;
+}
+
+.date-calendar-wrap {
+    position: relative;
+    z-index: 100;
+}
+
+#calendarBox {
+    display: none;
+    position: absolute;
+    top: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 420px;
+    max-width: calc(100vw - 20px);
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    z-index: 9999;
+}
 </style>
 
 <script>
@@ -723,6 +880,17 @@ function scrollRight() {
 window.addEventListener('load', () => {
     setTimeout(scrollRight, 50);
 });
+
+function toggleCalendar(event) {
+    event.stopPropagation();
+
+    const box = document.getElementById('calendarBox');
+
+    if (!box) return;
+
+    box.style.display = box.style.display === 'block' ? 'none' : 'block';
+}
+
 </script>
 
 @endsection
