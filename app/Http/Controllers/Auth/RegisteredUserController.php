@@ -47,12 +47,7 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
-
-        //     // 🔽 ここで分岐
-        // if ($user->is_admin) {
-        //     return redirect()->route('dashboard');
-        // }
+        Auth::login($user, true);
 
         return redirect()->route('home');
         }
