@@ -301,7 +301,7 @@ body {
 }
 
 .score-scroll {
-    height: calc(100dvh - 230px);
+    height: calc(100dvh - 200px);
     overflow: auto;
     border: 1px solid #eee;
     -webkit-overflow-scrolling: touch;
@@ -309,9 +309,6 @@ body {
      overscroll-behavior: contain;
 }
 
-.score-wrapper {
-    min-width: max-content;
-}
 .score-wrapper {
     min-width: max-content;
 }
