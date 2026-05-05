@@ -96,6 +96,9 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/group/{group}/history', [GroupHistoryController::class, 'index'])
         ->name('group.history')
         ->middleware('auth');
+    
+    Route::get('/group/{group}/monthly-print', [GroupHistoryController::class, 'monthlyPrint'])
+    ->name('group.monthlyPrint');
 
     //タブレット設定時指定ページに飛ばす処理
     Route::get('/dashboard', function () {

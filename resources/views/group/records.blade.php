@@ -2,7 +2,7 @@
 
 @section('content')
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<div class="container py-3">
+<div class="container-fluid py-3 record-page">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -15,10 +15,14 @@ body {
     overscroll-behavior: none;
 }
 
-.container {
+.record-page {
     max-width: 100%;
 }
-
+@media (max-width: 1024px) {
+    .container {
+        max-width: 100% !important;
+    }
+}
 .score-scroll {
     height: calc(100dvh - 280px);
     overflow: auto;

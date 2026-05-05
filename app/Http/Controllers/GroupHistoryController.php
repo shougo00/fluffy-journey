@@ -9,18 +9,32 @@ use Illuminate\Http\Request;
 
 class GroupHistoryController extends Controller
 {
-   public function index(Request $request, Group $group)
+    public function index(Request $request, Group $group)
     {
+        if (!$group->users()->where('users.id', auth()->id())->exists()) {
+            abort(403);
+        }
+
+        $view = $request->input('view', 'ranking');
+
         $scoreType = $request->input('score_type', 'all');
         $period = $request->input('period', 'today');
         $limit = $request->input('limit', 10);
 
-        [$start, $end] = $this->periodRange($period);
+        // ===== 月間記録用 =====
+        $month = $request->input('month', now()->format('Y-m'));
+        $currentMonth = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+        $prevMonth = $currentMonth->copy()->subMonth()->format('Y-m');
+        $nextMonth = $currentMonth->copy()->addMonth()->format('Y-m');
 
+        // ===== グループメンバー =====
         $members = $group->users()
-        ->where('is_admin', false)
-        ->with('avatar')
-        ->get();
+            ->where('is_admin', false)
+            ->with('avatar')
+            ->get();
+
+        // ===== ランキング用 =====
+        [$start, $end] = $this->periodRange($period);
 
         $ranking = $members->map(function ($user) use ($start, $end) {
             $records = Record::with('shots')
@@ -55,26 +69,59 @@ class GroupHistoryController extends Controller
         };
 
         $maleRanking = $sortRanking(
-            $ranking->filter(function ($row) {
-                return $row['user']->gender === 'male';
-            })
+            $ranking->filter(fn($row) => $row['user']->gender === 'male')
         );
 
         $femaleRanking = $sortRanking(
-            $ranking->filter(function ($row) {
-                return $row['user']->gender === 'female';
-            })
+            $ranking->filter(fn($row) => $row['user']->gender === 'female')
         );
+
+        // ===== 月間記録用 =====
+        // records に group_id が無いので、メンバーの user_id で絞る
+       // ===== 月間記録用 =====
+        $monthlyMembers = $group->users()
+            ->where('is_admin', false)
+            ->with('avatar')
+            ->get();
+
+        $memberIds = $monthlyMembers->pluck('id');
+
+        $monthlySourceRecords = Record::with('shots')
+            ->whereIn('user_id', $memberIds)
+            ->whereYear('date', $currentMonth->year)
+            ->whereMonth('date', $currentMonth->month)
+            ->get();
+
+        $monthlyRecords = $monthlyMembers
+            ->sortBy('name')
+            ->map(function ($user) use ($monthlySourceRecords) {
+                $records = $monthlySourceRecords->where('user_id', $user->id);
+
+                return [
+                    'user' => $user,
+                    'all' => $this->calc($records),
+                    'official' => $this->calc($records->where('practice_type', 'official')),
+                    'self' => $this->calc($records->where('practice_type', 'self')),
+                ];
+            })
+            ->values();
 
         return view('group_history.index', compact(
             'group',
+            'view',
             'period',
             'limit',
             'scoreType',
             'maleRanking',
-            'femaleRanking'
+            'femaleRanking',
+            'month',
+            'currentMonth',
+            'prevMonth',
+            'nextMonth',
+            'monthlyRecords'
         ));
     }
+
     private function calc($records)
     {
         $shots = $records->sum(function ($record) {
@@ -121,5 +168,46 @@ class GroupHistoryController extends Controller
             now()->format('Y-m-d'),
             now()->format('Y-m-d'),
         ];
+    }
+    public function monthlyPrint(Request $request, Group $group)
+    {
+        // ★ 所属チェック
+        if (!$group->users()->where('users.id', auth()->id())->exists()) {
+            abort(403);
+        }
+
+        $month = $request->month ?? now()->format('Y-m');
+        $currentMonth = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+
+        $members = $group->users()
+            ->where('is_admin', false)
+            ->get()
+            ->sortBy('name');
+
+        $memberIds = $members->pluck('id');
+
+        $records = Record::with('shots')
+            ->whereIn('user_id', $memberIds)
+            ->whereYear('date', $currentMonth->year)
+            ->whereMonth('date', $currentMonth->month)
+            ->get();
+
+        $rows = $members->map(function ($user) use ($records) {
+
+            $userRecords = $records->where('user_id', $user->id);
+
+            return [
+                'name' => $user->name,
+                'official' => $this->calc($userRecords->where('practice_type', 'official')),
+                'self' => $this->calc($userRecords->where('practice_type', 'self')),
+                'all' => $this->calc($userRecords),
+            ];
+        });
+
+        return view('group_history.monthly_print', compact(
+            'group',
+            'currentMonth',
+            'rows'
+        ));
     }
 }
