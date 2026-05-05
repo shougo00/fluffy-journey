@@ -44,6 +44,66 @@
     text-align: center;
 }
 
+.avatar-area {
+    width: 52px;
+    height: 62px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.avatar-layer {
+    position: absolute;
+    object-fit: contain;
+}
+
+.avatar-layer.hair {
+    top: 0;
+    left: 0;
+    width: 52px;
+    height: 24px;
+    z-index: 6;
+}
+
+.avatar-layer.face {
+    top: 13px;
+    left: 13px;
+    width: 26px;
+    height: 26px;
+    z-index: 5;
+}
+
+.avatar-layer.top {
+    top: 32px;
+    left: 0;
+    width: 52px;
+    height: 18px;
+    z-index: 4;
+}
+
+.avatar-layer.bottom {
+    top: 45px;
+    left: 0;
+    width: 52px;
+    height: 12px;
+    z-index: 3;
+}
+
+.avatar-layer.shoes {
+    top: 56px;
+    left: 8px;
+    width: 36px;
+    height: 6px;
+    z-index: 2;
+}
+
+.avatar-layer.accessory {
+    top: 0;
+    left: 8px;
+    width: 36px;
+    height: 12px;
+    z-index: 7;
+}
+
 .rank-info {
     flex: 1;
 }
