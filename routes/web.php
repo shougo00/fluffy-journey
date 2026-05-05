@@ -79,7 +79,7 @@ Route::middleware([ 'verified'])->group(function () {
     // 出欠ページ
    Route::get('/group/{groupId}/attendance', [AttendanceController::class, 'index']);
     Route::post('/group/{groupId}/attendance', [AttendanceController::class, 'save']);
-
+    Route::post('/group/{groupId}/attendance/all-absent', [AttendanceController::class, 'allAbsent']);
     Route::post('/kyudo-results', [KyudoResultController::class, 'store'])
         ->middleware('auth');
 
@@ -99,6 +99,8 @@ Route::middleware([ 'verified'])->group(function () {
     
     Route::get('/group/{group}/monthly-print', [GroupHistoryController::class, 'monthlyPrint'])
     ->name('group.monthlyPrint');
+
+
 
     //タブレット設定時指定ページに飛ばす処理
     Route::get('/dashboard', function () {

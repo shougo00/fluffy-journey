@@ -59,6 +59,39 @@
         保存済み
     </div>
 
+    <div class="form-check form-switch d-flex justify-content-center align-items-center gap-2 mb-3">
+        <input class="form-check-input"
+            type="checkbox"
+            id="allAbsentSwitch"
+            {{ $user->all_absent ? 'checked' : '' }}
+            onchange="setAllAbsent(this.checked)">
+
+        <label class="form-check-label" for="allAbsentSwitch">
+            全ての日を欠席にする
+        </label>
+    </div>
+    <div class="mt-4 text-center">
+    <div class="text-muted mb-2" style="font-size:13px;">
+        グループLINE共有用URL
+        <br>
+        ※アナウンス機能を使うことで出欠確認フォームとして使用できます。
+    </div>
+
+    <input type="text"
+           id="attendanceUrl"
+           class="form-control text-center mb-2"
+           value="{{ request()->url() }}"
+           readonly>
+
+    <button type="button"
+            class="btn btn-outline-primary"
+            onclick="copyAttendanceUrl()">
+        URLをコピー
+    </button>
+
+    <div id="copyStatus" class="text-muted mt-2" style="font-size:13px;"></div>
+</div>
+
 </div>
 
 </div>
@@ -129,6 +162,45 @@ function setAttendance(isAbsent) {
     .catch(() => {
         saveStatus.innerText = '保存失敗';
     });
+}
+function setAllAbsent(isAllAbsent) {
+    const saveStatus = document.getElementById('saveStatus');
+
+    saveStatus.innerText = '保存中...';
+
+    fetch('/group/{{ $group->id }}/attendance/all-absent', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            all_absent: isAllAbsent
+        })
+    })
+    .then(res => res.json())
+    .then(() => {
+        saveStatus.innerText = isAllAbsent
+            ? '全ての日を欠席にしました'
+            : '全ての日の欠席を解除しました';
+    })
+    .catch(() => {
+        saveStatus.innerText = '保存失敗';
+    });
+}
+function copyAttendanceUrl() {
+    const urlInput = document.getElementById('attendanceUrl');
+    const copyStatus = document.getElementById('copyStatus');
+
+    navigator.clipboard.writeText(urlInput.value)
+        .then(() => {
+            copyStatus.innerText = 'URLをコピーしました';
+        })
+        .catch(() => {
+            urlInput.select();
+            document.execCommand('copy');
+            copyStatus.innerText = 'URLをコピーしました';
+        });
 }
 </script>
 

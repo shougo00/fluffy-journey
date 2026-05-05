@@ -28,6 +28,7 @@ class User extends Authenticatable
         'next_exp',
         'point',
         'gender',
+        'all_absent',
     ];
 
 

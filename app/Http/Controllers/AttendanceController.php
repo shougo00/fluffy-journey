@@ -38,7 +38,7 @@ class AttendanceController extends Controller
         ],
         [
             'position' => null,
-            'is_absent' => false,
+            'is_absent' => $user->all_absent,
         ]
     );
 
@@ -84,6 +84,25 @@ class AttendanceController extends Controller
 
         $member->update([
             'is_absent' => $request->absent,
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+    
+    public function allAbsent(Request $request, $groupId)
+    {
+        $request->validate([
+            'all_absent' => 'required|boolean',
+        ]);
+
+        $user = auth()->user();
+
+        if (!$user->groups()->where('groups.id', $groupId)->exists()) {
+            abort(403, 'このグループにはアクセスできません');
+        }
+
+        $user->update([
+            'all_absent' => $request->all_absent,
         ]);
 
         return response()->json(['ok' => true]);

@@ -107,7 +107,7 @@ class LineupController extends Controller
                     'lineup_id' => $lineup->id,
                     'user_id' => $user->id,
                     'position' => null,
-                    'is_absent' => false
+                    'is_absent' => $user->all_absent,
                 ]);
             }
         }
