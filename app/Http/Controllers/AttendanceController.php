@@ -12,6 +12,17 @@ class AttendanceController extends Controller
    public function index(Request $request, $groupId)
 {
     $user = auth()->user();
+    if (!$user->line_link_code && !$user->line_user_id) {
+        do {
+            $code = (string) random_int(100000, 999999);
+        } while (\App\Models\User::where('line_link_code', $code)->exists());
+
+        $user->update([
+            'line_link_code' => $code,
+        ]);
+
+        $user->refresh();
+    }
 
     // ★ここ追加（超重要）
     if (!$user->groups()->where('groups.id', $groupId)->exists()) {

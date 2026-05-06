@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\Lineup;
+use App\Models\LineupMember;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class LineWebhookController extends Controller
@@ -59,9 +62,47 @@ class LineWebhookController extends Controller
             }
 
             if (str_contains($text, '休み') || str_contains($text, '欠席')) {
-                Log::info('欠席登録予定', [
+                $date = Carbon::today('Asia/Tokyo')->toDateString();
+
+                $group = $user->groups()->first();
+
+                if (!$group) {
+                    Log::info('所属グループなし', [
+                        'user_id' => $user->id,
+                    ]);
+                    return response('OK', 200);
+                }
+
+                $lineup = Lineup::firstOrCreate(
+                    [
+                        'group_id' => $group->id,
+                        'date' => $date,
+                    ],
+                    [
+                        'tate_size' => 3,
+                    ]
+                );
+
+                $member = LineupMember::firstOrCreate(
+                    [
+                        'lineup_id' => $lineup->id,
+                        'user_id' => $user->id,
+                    ],
+                    [
+                        'position' => null,
+                        'is_absent' => false,
+                    ]
+                );
+
+                $member->update([
+                    'is_absent' => true,
+                ]);
+
+                Log::info('LINEから欠席登録完了', [
                     'user_id' => $user->id,
                     'name' => $user->name,
+                    'group_id' => $group->id,
+                    'date' => $date,
                 ]);
             }
 

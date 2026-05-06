@@ -90,6 +90,34 @@
     </button>
 
     <div id="copyStatus" class="text-muted mt-2" style="font-size:13px;"></div>
+
+    <div class="mt-4 p-3 border rounded bg-light text-center">
+        <div class="fw-bold mb-2">
+            LINE Bot連携
+        </div>
+
+        @if($user->line_user_id)
+            <div class="text-success fw-bold">
+                連携済み
+            </div>
+            <div class="text-muted" style="font-size:13px;">
+                LINEグループで「今日休みます」と送ると自動で欠席になります。
+            </div>
+        @else
+            <div class="text-muted mb-2" style="font-size:13px;">
+                LINEグループで下の文字を送信してください。
+            </div>
+
+            <input type="text"
+                class="form-control text-center mb-2"
+                value="連携{{ $user->line_link_code }}"
+                readonly>
+
+            <div class="text-muted" style="font-size:13px;">
+                例：連携{{ $user->line_link_code }}
+            </div>
+        @endif
+    </div>
 </div>
 
 </div>
