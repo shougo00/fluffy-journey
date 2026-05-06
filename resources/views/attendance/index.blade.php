@@ -73,7 +73,7 @@
 
     <div class="mt-4 p-3 border rounded bg-light text-center">
         <div class="fw-bold mb-2">
-            LINE Bot連携
+            LINE 連携
         </div>
 
         @if($user->line_user_id)
