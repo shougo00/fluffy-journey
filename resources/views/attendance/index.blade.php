@@ -90,17 +90,27 @@
                 ※送信前に専用Botがグループに招待されている必要があります。
             </div>
 
+            {{-- ▼ここ変更 --}}
             <input type="text"
+                id="lineCode"
                 class="form-control text-center mb-2"
                 value="連携{{ $user->line_link_code }}"
                 readonly>
 
-            <div class="text-muted" style="font-size:13px;">
+            {{-- ▼コピーボタン追加 --}}
+            <button type="button"
+                    class="btn btn-outline-primary w-100"
+                    onclick="copyLineCode()">
+                コピー
+            </button>
+
+            <div id="copyStatus" class="text-muted mt-2" style="font-size:13px;"></div>
+
+            <div class="text-muted mt-2" style="font-size:13px;">
                 例：連携{{ $user->line_link_code }}
             </div>
         @endif
     </div>
-        {{-- ▼ここから追加 --}}
     <div class="mt-3">
 
         <div class="fw-bold mb-2" style="font-size:14px;">
@@ -119,11 +129,6 @@
         </a>
 
     </div>
-    {{-- ▲ここまで追加 --}}
-</div>
-
-</div>
-
 </div>
 
 <style>
