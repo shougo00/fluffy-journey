@@ -94,7 +94,7 @@ window.historyPageData = {
         </div>
     </div>
     <div class="rate-chart-card">
-        <div class="rate-chart-title">総合的中率グラフ</div>
+        <div class="rate-chart-title">総合的中率グラフ{{ $month }}</div>
         <div class="chart-wrap">
             <canvas id="overallRateChart"></canvas>
         </div>
