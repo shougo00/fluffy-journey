@@ -86,6 +86,8 @@
         @else
             <div class="text-muted mb-2" style="font-size:13px;">
                 LINEグループで下の文字を送信してください。
+                <br>
+                ※送信前に専用Botがグループに招待されている必要があります。
             </div>
 
             <input type="text"
