@@ -80,7 +80,7 @@
     <input type="text"
            id="attendanceUrl"
            class="form-control text-center mb-2"
-           value="{{ request()->url() }}"
+           value="{{ config('app.url') }}/group/{{ $group->id }}/attendance"
            readonly>
 
     <button type="button"
