@@ -99,6 +99,11 @@ Route::middleware([ 'verified'])->group(function () {
     
     Route::get('/group/{group}/monthly-print', [GroupHistoryController::class, 'monthlyPrint'])
     ->name('group.monthlyPrint');
+    
+    Route::post('/line/webhook', function (\Illuminate\Http\Request $request) {
+        \Log::info($request->all());
+        return response('OK', 200);
+    });
 
 
 
