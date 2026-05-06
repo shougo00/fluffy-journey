@@ -15,6 +15,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\KyudoResultController;      
 use App\Http\Controllers\KyudoResultPageController;
 use App\Http\Controllers\GroupHistoryController;
+use App\Http\Controllers\LineWebhookController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -100,11 +101,9 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/group/{group}/monthly-print', [GroupHistoryController::class, 'monthlyPrint'])
     ->name('group.monthlyPrint');
     
-    Route::post('/line/webhook', function (\Illuminate\Http\Request $request) {
-        \Log::info($request->all());
-        return response('OK', 200);
-    });
-
+    
+    //ライン用
+    Route::post('/line/webhook', [LineWebhookController::class, 'handle']);
 
 
     //タブレット設定時指定ページに飛ばす処理
