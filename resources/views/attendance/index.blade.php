@@ -108,10 +108,9 @@
         <div class="text-muted" style="font-size:13px; line-height:1.7;">
             ① 下のボタンからBotを追加<br>
             ② LINEグループにBotを招待<br>
-            ③ このコードをグループで送信
         </div>
 
-        <a href="https://line.me/R/ti/p/@あなたのLINE公式ID"
+        <a href="https://line.me/R/ti/p/@349uxqew"
         target="_blank"
         class="btn btn-success w-100 mt-2">
             LINE Botを追加
