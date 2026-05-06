@@ -98,6 +98,27 @@
             </div>
         @endif
     </div>
+        {{-- ▼ここから追加 --}}
+    <div class="mt-3">
+
+        <div class="fw-bold mb-2" style="font-size:14px;">
+            Botの追加方法
+        </div>
+
+        <div class="text-muted" style="font-size:13px; line-height:1.7;">
+            ① 下のボタンからBotを追加<br>
+            ② LINEグループにBotを招待<br>
+            ③ このコードをグループで送信
+        </div>
+
+        <a href="https://line.me/R/ti/p/@あなたのLINE公式ID"
+        target="_blank"
+        class="btn btn-success w-100 mt-2">
+            LINE Botを追加
+        </a>
+
+    </div>
+    {{-- ▲ここまで追加 --}}
 </div>
 
 </div>
