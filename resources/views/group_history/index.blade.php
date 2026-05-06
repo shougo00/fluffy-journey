@@ -41,7 +41,7 @@
                 'score_type' => $scoreType
             ]) }}"
            class="page-tab {{ $view === 'monthly' ? 'active' : '' }}">
-            月間記録（{{ $currentMonth->format('Y年n月') }}）
+            月間記録{{ $currentMonth->format('Y年n月') }}
         </a>
     </div>
 
