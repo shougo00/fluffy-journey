@@ -53,7 +53,7 @@ class LineWebhookController extends Controller
                         'messages' => [
                             [
                                 'type' => 'text',
-                                'text' => "LINE連携が完了しました！\nこれから「今日休みます」と送ると出欠に反映されます。",
+                                'text' => "LINE連携が完了しました！\nこのグループで「休みます」の単語でその日の出欠が欠席として登録されます。",
                             ],
                         ],
                     ]);
