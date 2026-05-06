@@ -22,7 +22,7 @@ Route::get('/', function () {
 
 
 // 1️⃣ ダッシュボードルート（ログイン後のホーム）
-Route::middleware([ 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     
     // 2️⃣ プロフィール関連
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
