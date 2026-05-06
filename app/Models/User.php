@@ -30,6 +30,8 @@ class User extends Authenticatable
         'point',
         'gender',
         'all_absent',
+        'line_user_id',
+        'line_link_code',
     ];
 
 
