@@ -80,7 +80,7 @@
     <input type="text"
            id="attendanceUrl"
            class="form-control text-center mb-2"
-           value="{{ config('app.url') }}/group/{{ $group->id }}/attendance"
+           value="https://pacific-mesa-32015-2c2948e94167.herokuapp.com//group/{{ $group->id }}/attendance"
            readonly>
 
     <button type="button"
