@@ -43,6 +43,21 @@ class LineWebhookController extends Controller
                 $user->line_user_id = $lineUserId;
                 $user->line_link_code = null;
                 $user->save();
+                $replyToken = $event['replyToken'] ?? null;
+
+                if ($replyToken) {
+                    Http::withHeaders([
+                        'Authorization' => 'Bearer ' . env('LINE_CHANNEL_ACCESS_TOKEN'),
+                    ])->post('https://api.line.me/v2/bot/message/reply', [
+                        'replyToken' => $replyToken,
+                        'messages' => [
+                            [
+                                'type' => 'text',
+                                'text' => "LINE連携が完了しました！\nこれから「今日休みます」と送ると出欠に反映されます。",
+                            ],
+                        ],
+                    ]);
+                }
 
                 Log::info('LINE連携完了', [
                     'user_id' => $user->id,
