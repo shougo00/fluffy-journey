@@ -24,18 +24,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $credentials = $request->only('email', 'password');
+        $request->authenticate();
 
-        // remember対応ログイン
-        if (Auth::attempt($credentials, true)) {
-            $request->session()->regenerate();
+        $request->session()->regenerate();
 
-            return redirect()->route('home');
-        }
-
-        return back()->withErrors([
-            'email' => 'ログイン情報が正しくありません',
-        ]);
+        return redirect()->route('home');
     }
 
     /**

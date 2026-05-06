@@ -31,15 +31,28 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'username' => [
+                'required',
+                'string',
+                'min:5',
+                'max:255',
+                'regex:/^[a-zA-Z0-9]+$/',
+                'unique:users,username',
+            ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'is_admin' => ['nullable', 'boolean'], 
+            'is_admin' => ['nullable', 'boolean'],
             'gender' => ['required', 'in:male,female'],
+        ], [
+            'username.required' => 'ユーザー名を入力してください。',
+            'username.min' => 'ユーザー名は5文字以上で入力してください。',
+            'username.regex' => 'ユーザー名は英数字のみ使用できます。',
+            'username.unique' => 'このユーザー名はすでに使われています。',
         ]);
 
         $user = User::create([
             'name' => $request->name,
-            'email' => $request->email,
+            'username' => $request->username,
+            'email' => null,
             'password' => Hash::make($request->password),
             'is_admin' => $request->has('is_admin'),
             'gender' => $request->gender,
@@ -50,5 +63,5 @@ class RegisteredUserController extends Controller
         Auth::login($user, true);
 
         return redirect()->route('home');
-        }
+    }
 }

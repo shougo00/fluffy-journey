@@ -20,6 +20,7 @@ class User extends Authenticatable
   // app/Models/User.php
     protected $fillable = [
         'name',
+        'username',
         'email',
         'password',
         'is_admin',

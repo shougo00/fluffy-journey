@@ -19,29 +19,19 @@
             @endif
         </div>
 
-        <div class="mb-3">
-            <label for="email" class="form-label">メールアドレス</label>
-            <input type="email" class="form-control" id="email" name="email" value="{{ old('email', $user->email) }}" required autocomplete="username">
-            @if($errors->get('email'))
+       <div class="mb-3">
+            <label for="username" class="form-label">ユーザー名</label>
+            <input type="text"
+                class="form-control"
+                id="username"
+                name="username"
+                value="{{ old('username', $user->username) }}"
+                required
+                autocomplete="username">
+
+            @if($errors->get('username'))
                 <div class="text-danger mt-1">
-                    {{ $errors->first('email') }}
-                </div>
-            @endif
-
-            @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div class="mt-2">
-                    <p class="small text-dark mb-1">
-                        メールアドレスが確認されていません。
-                        <button type="submit" form="send-verification" class="btn btn-link p-0 m-0 align-baseline">
-                            確認メールを再送する
-                        </button>
-                    </p>
-
-                    @if (session('status') === 'verification-link-sent')
-                        <p class="small text-success mt-1 mb-0">
-                            新しい確認リンクをメールに送信しました。
-                        </p>
-                    @endif
+                    {{ $errors->first('username') }}
                 </div>
             @endif
         </div>

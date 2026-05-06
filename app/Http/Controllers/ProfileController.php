@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
-
 class ProfileController extends Controller
 {
     /**
@@ -17,10 +16,8 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
-        $user = $request->user();
-
         return view('profile.edit_user', [
-            'user' => $user,
+            'user' => $request->user(),
         ]);
     }
 
@@ -36,14 +33,12 @@ class ProfileController extends Controller
         // ホストユーザーON/OFF保存
         $user->is_admin = $request->boolean('is_admin');
 
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
-        }
-
         $user->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::route('profile.edit')
+            ->with('status', 'profile-updated');
     }
+
     /**
      * Delete the user's account.
      */
