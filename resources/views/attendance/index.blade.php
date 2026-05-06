@@ -70,26 +70,6 @@
             全ての日を欠席にする
         </label>
     </div>
-    <div class="mt-4 text-center">
-    <div class="text-muted mb-2" style="font-size:13px;">
-        グループLINE共有用URL
-        <br>
-        ※アナウンス機能を使うことで出欠確認フォームとして使用できます。
-    </div>
-
-    <input type="text"
-           id="attendanceUrl"
-           class="form-control text-center mb-2"
-           value="https://pacific-mesa-32015-2c2948e94167.herokuapp.com/group/{{ $group->id }}/attendance"
-           readonly>
-
-    <button type="button"
-            class="btn btn-outline-primary"
-            onclick="copyAttendanceUrl()">
-        URLをコピー
-    </button>
-
-    <div id="copyStatus" class="text-muted mt-2" style="font-size:13px;"></div>
 
     <div class="mt-4 p-3 border rounded bg-light text-center">
         <div class="fw-bold mb-2">
