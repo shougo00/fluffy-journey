@@ -81,7 +81,9 @@
                 連携済み
             </div>
             <div class="text-muted" style="font-size:13px;">
-                LINEグループで「今日休みます」と送ると自動で欠席になります。
+                LINEグループで「今日休みます」「明日やすみます」「5月10日休みます」
+                <br>
+                などと送信すると、該当日の出欠が自動で欠席として登録されます。
             </div>
         @else
             <div class="text-muted mb-2" style="font-size:13px;">
