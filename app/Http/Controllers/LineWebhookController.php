@@ -76,8 +76,8 @@ class LineWebhookController extends Controller
                 return response('OK', 200);
             }
 
-            if (str_contains($text, '休み') || str_contains($text, '欠席')) {
-                $date = Carbon::today('Asia/Tokyo')->toDateString();
+            if (preg_match('/(休|やす|欠席|けっせき)/u', $text)) {
+                $date = $this->extractDateFromText($text);
 
                 $group = $user->groups()->first();
 
@@ -130,5 +130,44 @@ class LineWebhookController extends Controller
         }
 
         return response('OK', 200);
+    }
+    private function extractDateFromText(string $text): string
+    {
+        $today = Carbon::today('Asia/Tokyo');
+
+        // 今日
+        if (str_contains($text, '今日') || str_contains($text, '本日')) {
+            return $today->toDateString();
+        }
+
+        // 明日
+        if (str_contains($text, '明日') || str_contains($text, 'あした')) {
+            return $today->copy()->addDay()->toDateString();
+        }
+
+        // 明後日
+        if (str_contains($text, '明後日') || str_contains($text, 'あさって')) {
+            return $today->copy()->addDays(2)->toDateString();
+        }
+
+        // 2026年5月10日 / 2026/5/10 / 2026-5-10
+        if (preg_match('/(\d{4})[年\/\-](\d{1,2})[月\/\-](\d{1,2})日?/u', $text, $m)) {
+            return Carbon::createFromDate($m[1], $m[2], $m[3], 'Asia/Tokyo')->toDateString();
+        }
+
+        // 5月10日 / 5/10 / 5-10
+        if (preg_match('/(\d{1,2})[月\/\-](\d{1,2})日?/u', $text, $m)) {
+            $date = Carbon::createFromDate($today->year, $m[1], $m[2], 'Asia/Tokyo');
+
+            // すでに過ぎている日付なら来年扱い
+            if ($date->lt($today)) {
+                $date->addYear();
+            }
+
+            return $date->toDateString();
+        }
+
+        // 何も日付がなければ今日
+        return $today->toDateString();
     }
 }
