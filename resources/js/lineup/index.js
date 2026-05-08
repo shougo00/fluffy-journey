@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-initMembers(false);
+
 document.addEventListener('DOMContentLoaded', () => {
     initMembers(false);
 
@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             flash.style.transition = 'opacity 0.5s, transform 0.5s';
             flash.style.opacity = '0';
-            flash.style.transform = 'translateY(-10px';
+            flash.style.transform = 'translateY(-10px)';
 
             setTimeout(() => {
                 flash.remove();
