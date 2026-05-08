@@ -90,6 +90,16 @@
     user-select: none;
     text-align: center;
     touch-action: manipulation;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: clamp(10px, 2vw, 14px);
 }
 
 .member.selected {
