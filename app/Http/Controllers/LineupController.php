@@ -24,7 +24,7 @@ class LineupController extends Controller
                 'date' => $date
             ],
             [
-                'tate_size' => 5
+                'tate_size' => 9
             ]
         );
 
