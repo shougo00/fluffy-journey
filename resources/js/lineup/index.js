@@ -410,7 +410,7 @@ function autoSave() {
 
     saveTimer = setTimeout(() => {
         save(false);
-    }, 400);
+    }, 150);
 }
 
 function save(showAlert = false) {
