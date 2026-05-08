@@ -214,6 +214,9 @@
         font-size: 13px;
         padding: 5px 8px;
     }
+    .member.long-name {
+        font-size: 11px;
+    }
 
     .save-status {
         text-align: right;
