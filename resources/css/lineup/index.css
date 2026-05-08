@@ -99,7 +99,12 @@
     align-items: center;
     justify-content: center;
 
-    font-size: clamp(10px, 2vw, 14px);
+    font-size: 14px;
+}
+
+/* 長い名前だけ小さく */
+.member.long-name {
+    font-size: 11px;
 }
 
 .member.selected {

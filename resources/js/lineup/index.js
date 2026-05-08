@@ -31,7 +31,9 @@ function makeMember(sourceEl) {
     div.draggable = true;
     div.dataset.id = sourceEl.dataset.id;
     div.textContent = sourceEl.textContent.trim();
-
+    if (div.textContent.length >= 5) {
+        div.classList.add('long-name');
+    }
     // ===== PCドラッグ =====
     div.addEventListener('dragstart', () => {
         dragged = div;
