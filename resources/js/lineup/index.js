@@ -380,10 +380,16 @@ tateSelect.addEventListener('change', () => {
 function randomize() {
     // 未配置にいる人だけ対象
     const members = Array.from(pool.querySelectorAll('.member'))
-        .filter(member => !member.classList.contains('absent'));
+        .filter(member =>
+            !member.classList.contains('absent') &&
+            !member.classList.contains('late')
+        );
 
     const absentMembers = Array.from(pool.querySelectorAll('.member'))
-        .filter(member => member.classList.contains('absent'));
+    .filter(member =>
+        member.classList.contains('absent') ||
+        member.classList.contains('late')
+    );
 
     for (let i = members.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));

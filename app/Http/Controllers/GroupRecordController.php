@@ -33,8 +33,9 @@ class GroupRecordController extends Controller
             $lineup = Lineup::with('members.user')->findOrFail($lineup->id);
             $tateSize = $lineup->tate_size;
 
-            $placedMembers = $lineup->members
+           $placedMembers = $lineup->members
                 ->where('is_absent', false)
+                ->where('is_late', false)
                 ->filter(fn($m) => !is_null($m->position))
                 ->sortBy('position')
                 ->values();
@@ -103,6 +104,7 @@ class GroupRecordController extends Controller
             ->whereMonth('date', \Carbon\Carbon::parse($month . '-01')->month)
             ->whereHas('members', function ($q) {
                 $q->where('is_absent', false)
+                ->where('is_late', false)
                 ->whereNotNull('position');
             })
             ->pluck('date')
@@ -147,6 +149,7 @@ class GroupRecordController extends Controller
 
         $users = $lineup->members
             ->where('is_absent', false)
+            ->where('is_late', false)
             ->filter(fn($m) => !is_null($m->position))
             ->sortBy('position')
             ->pluck('user')
@@ -212,7 +215,8 @@ class GroupRecordController extends Controller
                     'lineup_id' => $lineup->id,
                     'user_id' => $user->id,
                     'position' => null,
-                    'is_absent' => false
+                    'is_absent' => false,
+                    'is_late' => false,
                 ]);
             }
         }
