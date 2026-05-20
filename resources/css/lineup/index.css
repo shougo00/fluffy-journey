@@ -131,6 +131,11 @@
 .member.absent.selected {
     background: #444 !important;
 }
+.member.late {
+    background: #ffd54f;
+    color: #000;
+    border-color: #fbc02d;
+}
 
 .operation-help {
     font-size: 13px;

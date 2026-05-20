@@ -36,23 +36,36 @@
     </div>
 
     <div class="status-text mb-3" id="statusText">
-        {{ $member->is_absent ? '現在：欠席' : '現在：出席' }}
+        @if($member->is_absent)
+            現在：欠席
+        @elseif($member->is_late)
+            現在：遅刻
+        @else
+            現在：出席
+        @endif
     </div>
 
-    <div class="d-flex gap-3 justify-content-center">
+    <div class="d-flex gap-2 justify-content-center flex-wrap">
         <button type="button"
                 id="presentBtn"
-                class="btn {{ !$member->is_absent ? 'btn-success' : 'btn-outline-success' }}"
-                onclick="setAttendance(false)">
+                class="btn {{ (!$member->is_absent && !$member->is_late) ? 'btn-success' : 'btn-outline-success' }}"
+                onclick="setAttendance('present')">
             出席
         </button>
-
         <button type="button"
                 id="absentBtn"
                 class="btn {{ $member->is_absent ? 'btn-danger' : 'btn-outline-danger' }}"
-                onclick="setAttendance(true)">
+                onclick="setAttendance('absent')">
             欠席
         </button>
+        <button type="button"
+                id="lateBtn"
+                class="btn {{ $member->is_late ? 'btn-warning' : 'btn-outline-warning' }}"
+                onclick="setAttendance('late')">
+            遅刻
+        </button>
+
+       
     </div>
 
     <div id="saveStatus" class="text-muted mt-3" style="font-size:13px;">
@@ -152,20 +165,30 @@
 </style>
 
 <script>
-function setAttendance(isAbsent) {
+function setAttendance(status) {
     const presentBtn = document.getElementById('presentBtn');
+    const lateBtn = document.getElementById('lateBtn');
     const absentBtn = document.getElementById('absentBtn');
     const statusText = document.getElementById('statusText');
     const saveStatus = document.getElementById('saveStatus');
 
-    if (isAbsent) {
-        presentBtn.className = 'btn btn-outline-success';
+    presentBtn.className = 'btn btn-outline-success';
+    lateBtn.className = 'btn btn-outline-warning';
+    absentBtn.className = 'btn btn-outline-danger';
+
+    if (status === 'present') {
+        presentBtn.className = 'btn btn-success';
+        statusText.innerText = '現在：出席';
+    }
+
+    if (status === 'late') {
+        lateBtn.className = 'btn btn-warning';
+        statusText.innerText = '現在：遅刻';
+    }
+
+    if (status === 'absent') {
         absentBtn.className = 'btn btn-danger';
         statusText.innerText = '現在：欠席';
-    } else {
-        presentBtn.className = 'btn btn-success';
-        absentBtn.className = 'btn btn-outline-danger';
-        statusText.innerText = '現在：出席';
     }
 
     saveStatus.innerText = '保存中...';
@@ -178,7 +201,7 @@ function setAttendance(isAbsent) {
         },
         body: JSON.stringify({
             date: '{{ $date }}',
-            absent: isAbsent
+            status: status
         })
     })
     .then(res => res.json())

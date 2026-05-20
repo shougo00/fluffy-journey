@@ -76,6 +76,55 @@ class LineWebhookController extends Controller
                 return response('OK', 200);
             }
 
+            if (preg_match('/(遅刻|遅れ|おくれ|遅れる|遅れます)/u', $text)) {
+            $date = $this->extractDateFromText($text);
+
+            $group = $user->groups()->first();
+
+            if (!$group) {
+                Log::info('所属グループなし', [
+                    'user_id' => $user->id,
+                ]);
+                return response('OK', 200);
+            }
+
+            $lineup = Lineup::firstOrCreate(
+                [
+                    'group_id' => $group->id,
+                    'date' => $date,
+                ],
+                [
+                    'tate_size' => 3,
+                ]
+            );
+
+            $member = LineupMember::firstOrCreate(
+                [
+                    'lineup_id' => $lineup->id,
+                    'user_id' => $user->id,
+                ],
+                [
+                    'position' => null,
+                    'is_absent' => false,
+                    'is_late' => false,
+                ]
+            );
+
+            $member->update([
+                'is_absent' => false,
+                'is_late' => true,
+            ]);
+
+            Log::info('LINEから遅刻登録完了', [
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'group_id' => $group->id,
+                'date' => $date,
+            ]);
+
+            return response('OK', 200);
+        }
+
             if (preg_match('/(休|やす|欠席|けっせき)/u', $text)) {
                 $date = $this->extractDateFromText($text);
 
@@ -106,11 +155,13 @@ class LineWebhookController extends Controller
                     [
                         'position' => null,
                         'is_absent' => false,
+                        'is_late' => false,
                     ]
                 );
 
                 $member->update([
                     'is_absent' => true,
+                    'is_late' => false,
                 ]);
 
                 Log::info('LINEから欠席登録完了', [

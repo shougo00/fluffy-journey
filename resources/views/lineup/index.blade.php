@@ -81,7 +81,7 @@
 <hr>
 
 <p class="text-muted text-end operation-help">
-    スマホ：長押しで欠席 / PC：ダブルクリックで欠席
+    スマホ：長押しで欠席、遅刻 / PC：ダブルクリックで欠席、遅刻
 </p>
 
 <h5 class="pool-title">未配置</h5>
@@ -89,7 +89,9 @@
 
 <div id="membersSource" style="display:none;">
 @foreach($members as $m)
-    <div class="source-member {{ $m->is_absent ? 'absent' : '' }}"
+    <div class="source-member
+    {{ $m->is_absent ? 'absent' : '' }}
+    {{ $m->is_late ? 'late' : '' }}"
          data-id="{{ $m->id }}"
          data-position="{{ $m->position }}"
          data-gender="{{ $m->user->gender }}">

@@ -9,7 +9,8 @@ class LineupMember extends Model
         'lineup_id',
         'user_id',
         'position',
-        'is_absent'
+        'is_absent',
+        'is_late',
     ];
 
     public function user()

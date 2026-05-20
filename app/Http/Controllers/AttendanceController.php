@@ -50,6 +50,7 @@ class AttendanceController extends Controller
         [
             'position' => null,
             'is_absent' => $user->all_absent,
+            'is_late' => false,
         ]
     );
 
@@ -65,12 +66,16 @@ class AttendanceController extends Controller
     public function save(Request $request, $groupId)
     {
         $request->validate([
-            'absent' => 'required|boolean',
+            'status' => 'required|in:present,late,absent',
             'date' => 'required|date',
         ]);
 
         $date = $request->date;
         $user = auth()->user();
+
+        if (!$user->groups()->where('groups.id', $groupId)->exists()) {
+            abort(403, 'このグループにはアクセスできません');
+        }
 
         $lineup = Lineup::firstOrCreate(
             [
@@ -90,11 +95,13 @@ class AttendanceController extends Controller
             [
                 'position' => null,
                 'is_absent' => false,
+                'is_late' => false,
             ]
         );
 
         $member->update([
-            'is_absent' => $request->absent,
+            'is_absent' => $request->status === 'absent',
+            'is_late' => $request->status === 'late',
         ]);
 
         return response()->json(['ok' => true]);

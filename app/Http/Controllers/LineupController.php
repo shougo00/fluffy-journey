@@ -52,7 +52,8 @@ class LineupController extends Controller
                 ->where('lineup_id', $lineup->id)
                 ->update([
                     'position' => $m['position'],
-                    'is_absent' => $m['absent']
+                    'is_absent' => $m['absent'],
+                    'is_late' => $m['late'] ?? false,
                 ]);
         }
 

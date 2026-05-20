@@ -28,6 +28,10 @@ function makeMember(sourceEl) {
         div.classList.add('absent');
     }
 
+    if (sourceEl.classList.contains('late')) {
+        div.classList.add('late');
+    }
+
     div.draggable = true;
     div.dataset.id = sourceEl.dataset.id;
     div.textContent = sourceEl.textContent.trim();
@@ -51,7 +55,7 @@ function makeMember(sourceEl) {
         longPressed = false;
         longPressTimer = setTimeout(() => {
             longPressed = true;
-            div.classList.toggle('absent');
+            cycleAttendance(div);
             selectMember(null);
             autoSave();
         }, 600);
@@ -68,7 +72,7 @@ function makeMember(sourceEl) {
     // ===== PCダブルクリック（欠席）←これ追加 =====
     div.addEventListener('dblclick', (e) => {
         e.stopPropagation();
-        div.classList.toggle('absent');
+        cycleAttendance(div);
         selectMember(null);
         autoSave();
     });
@@ -424,16 +428,18 @@ function save(showAlert = false) {
             list.push({
                 id: member.dataset.id,
                 position: index + 1,
-                absent: member.classList.contains('absent')
+                absent: member.classList.contains('absent'),
+                late: member.classList.contains('late')
             });
         }
     });
 
     document.querySelectorAll('#pool .member').forEach(member => {
-        list.push({
+       list.push({
             id: member.dataset.id,
             position: null,
-            absent: member.classList.contains('absent')
+            absent: member.classList.contains('absent'),
+            late: member.classList.contains('late')
         });
     });
 
@@ -502,6 +508,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 2000);
     });
 });
+function cycleAttendance(div) {
+
+    // 出席 → 遅刻
+    if (!div.classList.contains('late') &&
+        !div.classList.contains('absent')) {
+
+        div.classList.add('late');
+        return;
+    }
+
+    // 遅刻 → 欠席
+    if (div.classList.contains('late')) {
+        div.classList.remove('late');
+        div.classList.add('absent');
+        return;
+    }
+
+    // 欠席 → 出席
+    if (div.classList.contains('absent')) {
+        div.classList.remove('absent');
+    }
+}
 window.addLineupRow = addLineupRow;
 window.randomize = randomize;
 window.clearAll = clearAll;
