@@ -493,25 +493,27 @@ window.openMatchTeamCreateModal = openMatchTeamCreateModal;
 window.closeMatchTeamCreateModal = closeMatchTeamCreateModal;
 
 function initMatchTeamBoardScroll() {
+    const scrollArea = document.querySelector('.match-score-scroll');
     const board = document.querySelector('.match-team-board');
-    if (!board) return;
+    const target = scrollArea || board;
+    if (!target || !board) return;
 
-    board.addEventListener('wheel', event => {
+    target.addEventListener('wheel', event => {
+        if (window.matchMedia('(pointer: coarse)').matches) return;
+
         const isMostlyHorizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
+        const canScrollX = target.scrollWidth > target.clientWidth;
 
-        if (event.shiftKey && board.scrollWidth > board.clientWidth) {
-            board.scrollLeft += event.deltaY;
+        if (canScrollX && event.shiftKey && !isMostlyHorizontal) {
+            target.scrollLeft += event.deltaY;
             event.preventDefault();
             return;
         }
 
-        if (isMostlyHorizontal) return;
-
-        window.scrollBy({
-            top: event.deltaY,
-            behavior: 'auto'
-        });
-        event.preventDefault();
+        if (canScrollX && isMostlyHorizontal) {
+            target.scrollLeft += event.deltaX;
+            event.preventDefault();
+        }
     }, { passive: false });
 }
 

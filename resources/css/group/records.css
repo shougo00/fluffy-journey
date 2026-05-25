@@ -36,7 +36,7 @@ body {
     }
 }
 .score-scroll {
-    height: calc(100dvh - 300px);
+    height: calc(100dvh - 300px + var(--record-height-extra, 60px));
     overflow: auto;
     border: 1px solid #eee;
     border-radius: 8px;
@@ -51,14 +51,17 @@ body {
 }
 
 .match-score-scroll {
-    height: auto;
+    height: calc(100dvh - 250px + var(--record-height-extra, 60px));
     max-height: none;
-    overflow: visible;
+    overflow: auto;
     border: 0;
+    background: transparent;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
 }
 
 .match-score-scroll .score-wrapper {
-    min-width: 0;
+    min-width: max-content;
 }
 
 .score-header,
@@ -246,13 +249,21 @@ body {
 
 @media (max-width: 1180px) {
     .score-scroll {
-        height: calc(100dvh - 340px);
+        height: calc(100dvh - 340px + var(--record-height-extra, 60px));
+    }
+
+    .match-score-scroll {
+        height: calc(100dvh - 300px + var(--record-height-extra, 60px));
     }
 }
 
 @media (max-width: 900px) {
     .score-scroll {
-        height: calc(100dvh - 370px);
+        height: calc(100dvh - 370px + var(--record-height-extra, 60px));
+    }
+
+    .match-score-scroll {
+        height: calc(100dvh - 330px + var(--record-height-extra, 60px));
     }
 
     .official-sheet-head {
@@ -282,7 +293,11 @@ body {
 
 @media (max-width: 560px) {
     .score-scroll {
-        height: calc(100dvh - 410px);
+        height: calc(100dvh - 410px + var(--record-height-extra, 60px));
+    }
+
+    .match-score-scroll {
+        height: calc(100dvh - 370px + var(--record-height-extra, 60px));
     }
 
     .official-sheet-actions {
@@ -417,12 +432,12 @@ body {
     display: flex;
     gap: 12px;
     align-items: flex-start;
-    overflow-x: auto;
-    width: 100%;
-    padding-bottom: 12px;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
-    scrollbar-gutter: stable;
+    overflow: visible;
+    width: max-content;
+    min-width: 100%;
+    min-height: 100%;
+    padding: 0 0 8px;
+    touch-action: pan-x pan-y;
 }
 
 .match-team-panel {
@@ -433,6 +448,7 @@ body {
     border-radius: 8px;
     background: #fff;
     padding: 10px;
+    align-self: flex-start;
 }
 
 .match-team-panel-head {
@@ -483,7 +499,7 @@ body {
 .match-vertical-tate {
     border: 1px solid #e1e6ed;
     border-radius: 8px;
-    background: #fbfcfe;
+    background: #fff;
     padding: 8px;
 }
 

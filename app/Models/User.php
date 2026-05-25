@@ -30,6 +30,7 @@ class User extends Authenticatable
         'point',
         'gender',
         'all_absent',
+        'official_record_height_extra',
         'line_user_id',
         'line_link_code',
     ];

@@ -12,9 +12,10 @@ class SettingController extends Controller
     public function index(Request $request): View
     {
         $group = $this->currentGroup($request);
+        $user = $request->user();
         $unlocked = $group && $request->session()->get($this->sessionKey($group->id), false);
 
-        return view('settings.index', compact('group', 'unlocked'));
+        return view('settings.index', compact('group', 'user', 'unlocked'));
     }
 
     public function unlock(Request $request): RedirectResponse
@@ -52,10 +53,15 @@ class SettingController extends Controller
 
         $validated = $request->validate([
             'official_tates_per_page' => ['required', 'integer', 'min:1', 'max:10'],
+            'official_record_height_extra' => ['required', 'integer', 'in:0,30,60,90,120'],
         ]);
 
         $group->update([
             'official_tates_per_page' => $validated['official_tates_per_page'],
+        ]);
+
+        $request->user()->update([
+            'official_record_height_extra' => $validated['official_record_height_extra'],
         ]);
 
         return back()->with('status', 'settings-updated');

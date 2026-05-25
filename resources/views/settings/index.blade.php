@@ -72,6 +72,32 @@
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label for="official_record_height_extra" class="form-label">記録欄の下位置（ユーザー設定）</label>
+                        <select id="official_record_height_extra"
+                                name="official_record_height_extra"
+                                class="form-select @error('official_record_height_extra') is-invalid @enderror">
+                            @php
+                                $heightOptions = [
+                                    0 => '標準',
+                                    30 => '少し下',
+                                    60 => '下',
+                                    90 => 'かなり下',
+                                    120 => '最大',
+                                ];
+                                $selectedHeight = (int) old('official_record_height_extra', $user->official_record_height_extra ?? 60);
+                            @endphp
+                            @foreach($heightOptions as $value => $label)
+                                <option value="{{ $value }}" {{ $selectedHeight === $value ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('official_record_height_extra')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <button class="btn btn-primary">保存</button>
                 </form>
             </div>
