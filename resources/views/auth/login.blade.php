@@ -5,6 +5,9 @@
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="theme-color" content="#2f5d46">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -110,7 +113,9 @@ body {
 
 <script>
 window.addEventListener('pageshow', function (event) {
-    if (event.persisted) {
+    const navigation = performance.getEntriesByType('navigation')[0];
+
+    if (event.persisted || navigation?.type === 'back_forward') {
         window.location.reload();
     }
 });
