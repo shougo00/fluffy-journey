@@ -246,13 +246,13 @@ body {
 
 @media (max-width: 1180px) {
     .score-scroll {
-        height: calc(100dvh - 390px);
+        height: calc(100dvh - 340px);
     }
 }
 
 @media (max-width: 900px) {
     .score-scroll {
-        height: calc(100dvh - 420px);
+        height: calc(100dvh - 370px);
     }
 
     .official-sheet-head {
@@ -282,7 +282,7 @@ body {
 
 @media (max-width: 560px) {
     .score-scroll {
-        height: calc(100dvh - 450px);
+        height: calc(100dvh - 410px);
     }
 
     .official-sheet-actions {
