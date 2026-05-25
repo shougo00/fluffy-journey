@@ -65,6 +65,11 @@
     保存済み
 </div>
 
+<div class="lineup-status-bar">
+    <div id="lineupSummary" class="lineup-summary">配置 0 / 未配置 0</div>
+    <div id="selectedMemberLabel" class="selected-member-label">選択なし</div>
+</div>
+
 @if(session('success'))
     <div class="alert alert-success flash-message">
         {{ session('success') }}
@@ -84,8 +89,29 @@
     スマホ：長押しで欠席、遅刻 / PC：ダブルクリックで欠席、遅刻
 </p>
 
-<h5 class="pool-title">未配置</h5>
-<div id="pool" class="pool"></div>
+<div class="pool-panel">
+    <button type="button" class="pool-toggle" onclick="togglePoolPanel()">
+        <span>未配置</span>
+        <strong id="poolCount">0人</strong>
+    </button>
+
+    <div id="poolTools" class="pool-tools">
+        <input type="search"
+               id="memberSearch"
+               class="form-control"
+               placeholder="名前で検索">
+
+        <div class="filter-buttons">
+            <button type="button" class="filter-btn active" data-filter="all" onclick="setPoolFilter('all')">全員</button>
+            <button type="button" class="filter-btn" data-filter="male" onclick="setPoolFilter('male')">男子</button>
+            <button type="button" class="filter-btn" data-filter="female" onclick="setPoolFilter('female')">女子</button>
+            <button type="button" class="filter-btn" data-filter="active" onclick="setPoolFilter('active')">出席</button>
+            <button type="button" class="filter-btn" data-filter="unavailable" onclick="setPoolFilter('unavailable')">遅欠</button>
+        </div>
+    </div>
+
+    <div id="pool" class="pool"></div>
+</div>
 
 <div id="membersSource" style="display:none;">
 @foreach($members as $m)

@@ -16,6 +16,8 @@ use App\Http\Controllers\KyudoResultController;
 use App\Http\Controllers\KyudoResultPageController;
 use App\Http\Controllers\GroupHistoryController;
 use App\Http\Controllers\LineWebhookController;
+use App\Http\Controllers\MatchLineupController;
+use App\Http\Controllers\SettingController;
 Route::get('/', function () {
     return redirect('/login');
 });
@@ -29,6 +31,9 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::post('/settings/unlock', [SettingController::class, 'unlock'])->name('settings.unlock');
+    Route::patch('/settings', [SettingController::class, 'update'])->name('settings.update');
 
     // 3️⃣ ユーザ管理画面
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -71,7 +76,16 @@ Route::middleware([ 'verified'])->group(function () {
     // グループ記録ページ
     Route::get('/group/{groupId}/records', [GroupRecordController::class, 'index'])->name('group.records');
     Route::post('/group/{groupId}/add-tate', [GroupRecordController::class, 'addTate']);
+    Route::post('/group/{groupId}/records/switch-sheet', [GroupRecordController::class, 'switchOfficialSheet']);
+    Route::get('/group/{groupId}/match-records', [GroupRecordController::class, 'matchIndex'])->name('group.match-records');
+    Route::post('/group/{groupId}/match-add-tate', [GroupRecordController::class, 'addMatchTate']);
     Route::post('/group/shot/{id}', [GroupRecordController::class, 'updateShot']);
+    Route::get('/group/{groupId}/match-lineup', [MatchLineupController::class, 'index'])->name('group.match-lineup');
+    Route::post('/group/{groupId}/match-teams', [MatchLineupController::class, 'storeTeam']);
+    Route::patch('/match-teams/{team}', [MatchLineupController::class, 'updateTeam']);
+    Route::delete('/match-teams/{team}', [MatchLineupController::class, 'destroy']);
+    Route::post('/match-teams/{team}/tate', [MatchLineupController::class, 'saveTate']);
+    Route::post('/match-teams/{team}/tate-timer', [MatchLineupController::class, 'saveTateTimer']);
     //　立順作成ページ
     Route::get('/group/{id}/lineup',[LineupController::class,'index']); 
     Route::post('/lineup/{id}/save',[LineupController::class,'save']); 

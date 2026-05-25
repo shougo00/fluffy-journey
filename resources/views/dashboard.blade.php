@@ -6,17 +6,21 @@ window.historyPageData = {
     type: @json($type),
     todayOfficial: @json($todayOfficial),
     todaySelf: @json($todaySelf),
+    todayMatch: @json($todayMatch),
     todayAll: @json($todayAll),
     monthOfficial: @json($monthOfficial),
     monthSelf: @json($monthSelf),
+    monthMatch: @json($monthMatch),
     monthAll: @json($monthAll),
     yearOfficial: @json($yearOfficial),
     yearSelf: @json($yearSelf),
+    yearMatch: @json($yearMatch),
     yearAll: @json($yearAll),
     calendar: @json($calendar),
     prevMonth: @json($prevMonth),
     nextMonth: @json($nextMonth),
-    currentMonth: @json($month)
+    currentMonth: @json($month),
+    groupId: @json($groupId)
 };
 </script>
 
@@ -54,6 +58,7 @@ window.historyPageData = {
     <div class="type-switch">
         <button onclick="changeType(event,'official')" id="btn-official" class="btn btn-sm btn-outline-danger">正規連</button>
         <button onclick="changeType(event,'self')" id="btn-self" class="btn btn-sm btn-outline-primary">自主練</button>
+        <button onclick="changeType(event,'match')" id="btn-match" class="btn btn-sm btn-outline-warning">試合</button>
         <button onclick="changeType(event,'all')" id="btn-all" class="btn btn-sm btn-outline-success">総合</button>
     </div>
 

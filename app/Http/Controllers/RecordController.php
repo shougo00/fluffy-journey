@@ -130,6 +130,7 @@ class RecordController extends Controller
     public function dashboard(Request $request)
     {
         $userId = auth()->id();
+        $groupId = auth()->user()?->groups()->value('groups.id');
 
         $type = $request->type ?? 'all';
 
@@ -167,11 +168,13 @@ class RecordController extends Controller
 
         $todayOfficial = $calc($todayRecords->where('practice_type','official'));
         $todaySelf     = $calc($todayRecords->where('practice_type','self'));
+        $todayMatch    = $calc($todayRecords->where('practice_type','match'));
         $todayAll      = $calc($todayRecords);
 
         // ===== 月間 =====
         $monthOfficial = $calc($records->where('practice_type','official'));
         $monthSelf     = $calc($records->where('practice_type','self'));
+        $monthMatch    = $calc($records->where('practice_type','match'));
         $monthAll      = $calc($records);
 
         // ===== 年間 =====
@@ -186,6 +189,7 @@ class RecordController extends Controller
 
         $yearOfficial = $calc($yearRecords->where('practice_type','official'));
         $yearSelf     = $calc($yearRecords->where('practice_type','self'));
+        $yearMatch    = $calc($yearRecords->where('practice_type','match'));
         $yearAll      = $calc($yearRecords);
 
         // ===== カレンダー =====
@@ -194,6 +198,7 @@ class RecordController extends Controller
             $calendar[$date] = [
                 'official' => $calc($dayRecords->where('practice_type','official')),
                 'self'     => $calc($dayRecords->where('practice_type','self')),
+                'match'    => $calc($dayRecords->where('practice_type','match')),
                 'all'      => $calc($dayRecords),
             ];
         }
@@ -203,10 +208,11 @@ class RecordController extends Controller
             'month',
             'prevMonth',
             'nextMonth',
+            'groupId',
             'type',
-            'todayOfficial','todaySelf','todayAll',
-            'monthOfficial','monthSelf','monthAll',
-            'yearOfficial','yearSelf','yearAll'
+            'todayOfficial','todaySelf','todayMatch','todayAll',
+            'monthOfficial','monthSelf','monthMatch','monthAll',
+            'yearOfficial','yearSelf','yearMatch','yearAll'
         ));
     }
 }

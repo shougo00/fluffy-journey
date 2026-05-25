@@ -221,6 +221,7 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="{{ route('profile.edit') }}">プロフィール</a></li>
+                        <li><a class="dropdown-item" href="{{ route('settings.index') }}">設定</a></li>
                     </ul>
                 </li>
             @else
@@ -324,6 +325,10 @@
                     <a class="nav-link" href="{{ route('profile.edit') }}">プロフィール</a>
                 </li>
 
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{{ route('settings.index') }}">設定</a>
+                </li>
+
             @else
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('login') }}">ログイン</a>
@@ -400,6 +405,24 @@ function goGroupRecord() {
 
         // 遷移
         window.location.href = `/group/${groupId}/records`;
+
+    @else
+        alert('ログインしてください');
+    @endauth
+
+}
+
+function goGroupMatchRecord() {
+
+    @auth
+        let groupId = {{ Auth::user()->groups->first()->id ?? 'null' }};
+
+        if (!groupId) {
+            alert('グループに参加していません');
+            return;
+        }
+
+        window.location.href = `/group/${groupId}/match-records`;
 
     @else
         alert('ログインしてください');

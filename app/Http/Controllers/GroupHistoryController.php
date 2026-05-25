@@ -17,9 +17,31 @@ class GroupHistoryController extends Controller
 
         $view = $request->input('view', 'ranking');
 
-        $scoreType = $request->input('score_type', 'all');
+        $availableScoreTypes = [
+            'official' => '正規練',
+            'self' => '自主練',
+            'match' => '試合',
+        ];
+
+        $scoreTypes = $request->input('score_types');
+        if ($scoreTypes === null && $request->filled('score_type')) {
+            $scoreTypes = $request->input('score_type') === 'all'
+                ? ['all']
+                : [$request->input('score_type')];
+        }
+
+        $allowedScoreTypes = array_merge(['all'], array_keys($availableScoreTypes));
+        $scoreTypes = collect((array) ($scoreTypes ?? ['all']))
+            ->filter(fn($type) => in_array($type, $allowedScoreTypes, true))
+            ->values()
+            ->all();
+
+        if (empty($scoreTypes) || in_array('all', $scoreTypes, true)) {
+            $scoreTypes = ['all'];
+        }
         $period = $request->input('period', 'today');
         $limit = $request->input('limit', 10);
+        $keyword = trim((string) $request->input('keyword', ''));
 
         // ===== 月間記録用 =====
         $month = $request->input('month', now()->format('Y-m'));
@@ -28,10 +50,11 @@ class GroupHistoryController extends Controller
         $nextMonth = $currentMonth->copy()->addMonth()->format('Y-m');
 
         // ===== グループメンバー =====
-        $members = $group->users()
+        $membersQuery = $group->users()
             ->where('is_admin', false)
-            ->with('avatar')
-            ->get();
+            ->with('avatar');
+
+        $members = $membersQuery->get();
 
         // ===== ランキング用 =====
         [$start, $end] = $this->periodRange($period);
@@ -44,25 +67,30 @@ class GroupHistoryController extends Controller
             ->get()
             ->groupBy('user_id');
 
-        $ranking = $members->map(function ($user) use ($rankingSourceRecords) {
+        $ranking = $members->map(function ($user) use ($rankingSourceRecords, $scoreTypes) {
             $records = $rankingSourceRecords->get($user->id, collect());
+            $selectedRecords = in_array('all', $scoreTypes, true)
+                ? $records
+                : $records->whereIn('practice_type', $scoreTypes);
 
             return [
                 'user' => $user,
+                'selected' => $this->calc($selectedRecords),
                 'all' => $this->calc($records),
                 'official' => $this->calc($records->where('practice_type', 'official')),
                 'self' => $this->calc($records->where('practice_type', 'self')),
+                'match' => $this->calc($records->where('practice_type', 'match')),
             ];
         });
 
-        $sortRanking = function ($items) use ($limit, $scoreType) {
+        $sortRanking = function ($items) use ($limit) {
             $items = $items
-                ->sort(function ($a, $b) use ($scoreType) {
-                    if ($a[$scoreType]['rate'] == $b[$scoreType]['rate']) {
-                        return $b[$scoreType]['hits'] <=> $a[$scoreType]['hits'];
+                ->sort(function ($a, $b) {
+                    if ($a['selected']['rate'] == $b['selected']['rate']) {
+                        return $b['selected']['hits'] <=> $a['selected']['hits'];
                     }
 
-                    return $b[$scoreType]['rate'] <=> $a[$scoreType]['rate'];
+                    return $b['selected']['rate'] <=> $a['selected']['rate'];
                 })
                 ->values();
 
@@ -84,10 +112,15 @@ class GroupHistoryController extends Controller
         // ===== 月間記録用 =====
         // records に group_id が無いので、メンバーの user_id で絞る
        // ===== 月間記録用 =====
-        $monthlyMembers = $group->users()
+        $monthlyMembersQuery = $group->users()
             ->where('is_admin', false)
-            ->with('avatar')
-            ->get();
+            ->with('avatar');
+
+        if ($keyword !== '') {
+            $monthlyMembersQuery->where('users.name', 'like', '%' . $keyword . '%');
+        }
+
+        $monthlyMembers = $monthlyMembersQuery->get();
 
         $memberIds = $monthlyMembers->pluck('id');
 
@@ -107,6 +140,7 @@ class GroupHistoryController extends Controller
                     'all' => $this->calc($records),
                     'official' => $this->calc($records->where('practice_type', 'official')),
                     'self' => $this->calc($records->where('practice_type', 'self')),
+                    'match' => $this->calc($records->where('practice_type', 'match')),
                 ];
             })
             ->values();
@@ -116,7 +150,9 @@ class GroupHistoryController extends Controller
             'view',
             'period',
             'limit',
-            'scoreType',
+            'keyword',
+            'scoreTypes',
+            'availableScoreTypes',
             'maleRanking',
             'femaleRanking',
             'month',
@@ -205,6 +241,7 @@ class GroupHistoryController extends Controller
                 'name' => $user->name,
                 'official' => $this->calc($userRecords->where('practice_type', 'official')),
                 'self' => $this->calc($userRecords->where('practice_type', 'self')),
+                'match' => $this->calc($userRecords->where('practice_type', 'match')),
                 'all' => $this->calc($userRecords),
             ];
         });

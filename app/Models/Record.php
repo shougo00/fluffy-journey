@@ -10,11 +10,20 @@ class Record extends Model
         'user_id',
         'date',
         'tate_no',
-        'practice_type'
+        'practice_type',
+        'official_sheet_no',
+        'match_team_id',
+        'lineup_position',
+        'lineup_tate_size',
     ];
 
     public function shots()
     {
         return $this->hasMany(Shot::class)->orderBy('shot_no');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

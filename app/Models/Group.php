@@ -8,7 +8,8 @@ class Group extends Model
     protected $fillable = [
         'name',
         'host_user_id',
-        'invite_code'
+        'invite_code',
+        'official_tates_per_page',
     ];
 
     public function users()

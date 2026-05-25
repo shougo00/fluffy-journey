@@ -8,15 +8,33 @@ use App\Models\Record;
 use App\Models\Shot;
 use App\Models\Lineup;
 use App\Models\LineupMember;
+use App\Models\MatchTeam;
+use App\Models\MatchTateMeta;
+use Illuminate\Support\Facades\DB;
 
 class GroupRecordController extends Controller
 {
     public function index(Request $request, $groupId)
     {
+        return $this->showRecords($request, $groupId, 'official');
+    }
+
+    public function matchIndex(Request $request, $groupId)
+    {
+        return $this->showRecords($request, $groupId, 'match');
+    }
+
+    private function showRecords(Request $request, $groupId, string $practiceType)
+    {
         $this->checkGroupAccess($groupId);
 
         $group = Group::with('users')->findOrFail($groupId);
         $date = $request->date ?? date('Y-m-d');
+        $maxTatesPerPage = max(1, (int) ($group->official_tates_per_page ?? 5));
+
+        if ($practiceType === 'match') {
+            return $this->showMatchRecords($request, $group, $date);
+        }
 
         $lineup = Lineup::with('members.user')
             ->where('group_id', $groupId)
@@ -26,6 +44,7 @@ class GroupRecordController extends Controller
         $tateSize = 3;
         $lineupSlots = collect();
         $users = collect();
+        $lineupSnapshotsByUserId = collect();
 
         if ($lineup) {
             $this->syncLineupMembers($lineup, $group);
@@ -41,6 +60,13 @@ class GroupRecordController extends Controller
                 ->values();
 
             $users = $placedMembers->pluck('user')->filter()->values();
+            $lineupSnapshotsByUserId = $placedMembers
+                ->mapWithKeys(fn($member) => [
+                    $member->user_id => [
+                        'position' => $member->position,
+                        'tate_size' => $tateSize,
+                    ],
+                ]);
 
             $maxPosition = $placedMembers->max('position') ?? 0;
 
@@ -60,26 +86,71 @@ class GroupRecordController extends Controller
             }
         }
 
+        $groupUserIds = $group->users
+            ->where('is_admin', false)
+            ->pluck('id')
+            ->values();
         $userIds = $users->pluck('id');
+        $sheetNos = $this->officialSheetNos($groupId, $date, $groupUserIds);
+        $activeSheetNo = (int) ($request->sheet_no ?? $sheetNos->max() ?? 1);
 
-        $tates = Record::whereIn('user_id', $userIds)
+        if ($activeSheetNo < 1) {
+            $activeSheetNo = 1;
+        }
+
+        $isCurrentSheet = $activeSheetNo === (int) ($sheetNos->max() ?? 1);
+        $tateDisplayOffset = Record::whereIn('user_id', $groupUserIds)
             ->where('date', $date)
-            ->where('practice_type', 'official')
+            ->where('practice_type', $practiceType)
+            ->where('official_sheet_no', '<', $activeSheetNo)
+            ->get(['official_sheet_no', 'tate_no'])
+            ->unique(fn($record) => $record->official_sheet_no . '-' . $record->tate_no)
+            ->count();
+
+        $tates = Record::whereIn('user_id', $groupUserIds)
+            ->where('date', $date)
+            ->where('practice_type', $practiceType)
+            ->where('official_sheet_no', $activeSheetNo)
             ->pluck('tate_no')
             ->unique()
             ->sort()
             ->values();
 
-        if ($users->isNotEmpty() && $tates->isNotEmpty()) {
-            $this->ensureRecordsWithShots($userIds, $date, $tates);
+        if ($isCurrentSheet && $userIds->isNotEmpty() && $tates->isNotEmpty()) {
+            $this->ensureRecordsWithShots(
+                $userIds,
+                $date,
+                $tates,
+                $practiceType,
+                null,
+                $lineupSnapshotsByUserId,
+                true,
+                $activeSheetNo
+            );
+
+            $tates = Record::whereIn('user_id', $groupUserIds)
+                ->where('date', $date)
+                ->where('practice_type', $practiceType)
+                ->where('official_sheet_no', $activeSheetNo)
+                ->pluck('tate_no')
+                ->unique()
+                ->sort()
+                ->values();
         }
 
-        $records = Record::with('shots')
-            ->whereIn('user_id', $userIds)
+        $recordRows = Record::with(['shots', 'user'])
+            ->whereIn('user_id', $groupUserIds)
             ->where('date', $date)
-            ->where('practice_type', 'official')
-            ->get()
-            ->groupBy('user_id');
+            ->where('practice_type', $practiceType)
+            ->where('official_sheet_no', $activeSheetNo)
+            ->get();
+
+        $records = $recordRows->groupBy('user_id');
+        $users = $users
+            ->merge($recordRows->pluck('user')->filter())
+            ->filter()
+            ->unique('id')
+            ->values();
 
         $hitCounts = [];
 
@@ -94,6 +165,49 @@ class GroupRecordController extends Controller
                 }
             }
         }
+
+        $officialTateSlots = collect();
+        $officialTateSizes = collect();
+
+        foreach ($tates as $tateNo) {
+            if ($isCurrentSheet && $lineupSlots->isNotEmpty()) {
+                $officialTateSlots->put($tateNo, $lineupSlots);
+                $officialTateSizes->put($tateNo, $tateSize);
+                continue;
+            }
+
+            $tateRecords = $recordRows
+                ->where('tate_no', $tateNo)
+                ->filter(fn($record) => !is_null($record->lineup_position));
+
+            if ($tateRecords->isEmpty()) {
+                $officialTateSlots->put($tateNo, $lineupSlots);
+                $officialTateSizes->put($tateNo, $tateSize);
+                continue;
+            }
+
+            $snapshotTateSize = (int) ($tateRecords->pluck('lineup_tate_size')->filter()->first() ?? $tateSize);
+            $maxPosition = max((int) $tateRecords->max('lineup_position'), $snapshotTateSize);
+            $totalSlots = $snapshotTateSize > 0
+                ? (int) ceil($maxPosition / $snapshotTateSize) * $snapshotTateSize
+                : $maxPosition;
+            $slots = collect();
+
+            for ($pos = 1; $pos <= $totalSlots; $pos++) {
+                $record = $tateRecords->firstWhere('lineup_position', $pos);
+
+                $slots->push((object) [
+                    'position' => $pos,
+                    'member' => null,
+                    'user' => $record?->user,
+                    'is_empty' => is_null($record?->user),
+                ]);
+            }
+
+            $officialTateSlots->put($tateNo, $slots);
+            $officialTateSizes->put($tateNo, $snapshotTateSize);
+        }
+
         $month = $request->month ?? \Carbon\Carbon::parse($date)->format('Y-m');
 
         $prevMonth = \Carbon\Carbon::parse($month . '-01')->subMonth()->format('Y-m');
@@ -111,6 +225,18 @@ class GroupRecordController extends Controller
             ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'))
             ->toArray();
 
+        $recordLabel = $practiceType === 'match' ? '試合記録' : '正規連';
+        $basePath = $practiceType === 'match'
+            ? "/group/{$groupId}/match-records"
+            : "/group/{$groupId}/records";
+        $addTatePath = $practiceType === 'match'
+            ? "/group/{$groupId}/match-add-tate"
+            : "/group/{$groupId}/add-tate";
+        $otherRecordPath = $practiceType === 'match'
+            ? "/group/{$groupId}/records"
+            : "/group/{$groupId}/match-records";
+        $otherRecordLabel = $practiceType === 'match' ? '正規連へ' : '試合記録へ';
+
         return view('group.records', compact(
             'group',
             'records',
@@ -123,16 +249,296 @@ class GroupRecordController extends Controller
             'prevMonth',
             'nextMonth',
             'lineupDates',
-            'lineupSlots'
+            'lineupSlots',
+            'practiceType',
+            'recordLabel',
+            'basePath',
+            'addTatePath',
+            'otherRecordPath',
+            'otherRecordLabel',
+            'officialTateSlots',
+            'officialTateSizes',
+            'activeSheetNo',
+            'sheetNos',
+            'isCurrentSheet',
+            'tateDisplayOffset',
+            'maxTatesPerPage'
+        ));
+    }
+
+    private function showMatchRecords(Request $request, Group $group, string $date)
+    {
+        $groupId = $group->id;
+        $matchAttendanceByUserId = $this->attendanceMembersByUserId($group, $date);
+        $teams = MatchTeam::withTrashed()
+            ->with(['members' => function ($q) use ($date) {
+                $q->where('date', $date)->with('user');
+            }])
+            ->where('group_id', $groupId)
+            ->where(function ($q) use ($date) {
+                $q->whereNull('deleted_at')
+                    ->orWhereHas('records', function ($recordQuery) use ($date) {
+                        $recordQuery->where('date', $date)
+                            ->whereHas('shots', function ($shotQuery) {
+                                $shotQuery->whereNotNull('result');
+                            });
+                    });
+            })
+            ->orderBy('id')
+            ->get();
+
+        $selectedTeam = $request->team_id
+            ? $teams->firstWhere('id', (int) $request->team_id)
+            : $teams->first();
+
+        $selectedTateNo = max(1, (int) ($request->tate_no ?? 1));
+        $tateSize = $selectedTeam?->tate_size ?? 3;
+        $tates = collect();
+        $matchTeamTates = collect();
+        $matchTeamSlots = collect();
+        $matchTeamUsers = collect();
+        $users = collect();
+
+        foreach ($teams as $team) {
+            $teamTates = $team->members
+                ->pluck('tate_no')
+                ->unique()
+                ->sort()
+                ->values();
+
+            if ($teamTates->isEmpty() && !$team->trashed()) {
+                $teamTates = collect([1]);
+            }
+
+            $matchTeamTates->put($team->id, $teamTates);
+
+            if ($team->members->isNotEmpty()) {
+                $this->ensureMatchTeamRecords($team, $date, $teamTates, $matchAttendanceByUserId);
+
+                foreach ($teamTates as $tateNo) {
+                    $members = $team->members
+                        ->where('tate_no', $tateNo)
+                        ->filter(function ($member) use ($matchAttendanceByUserId) {
+                            $attendance = $matchAttendanceByUserId->get($member->user_id);
+
+                            return !is_null($member->position)
+                                && !$attendance?->is_absent
+                                && !$attendance?->is_late;
+                        })
+                        ->sortBy('position')
+                        ->values();
+
+                    $users = $users->merge($members->pluck('user')->filter());
+                    $matchTeamUsers->put($team->id, $matchTeamUsers->get($team->id, collect())->merge($members->pluck('user')->filter()));
+                    $slots = collect();
+
+                    for ($pos = 1; $pos <= $team->tate_size; $pos++) {
+                        $member = $members->firstWhere('position', $pos);
+
+                        $slots->push((object) [
+                            'position' => $pos,
+                            'member' => $member,
+                            'user' => $member?->user,
+                            'is_empty' => is_null($member),
+                        ]);
+                    }
+
+                    $teamSlots = $matchTeamSlots->get($team->id, collect());
+                    $teamSlots->put($tateNo, $slots);
+                    $matchTeamSlots->put($team->id, $teamSlots);
+                }
+            } elseif (!$team->trashed()) {
+                $slots = collect();
+
+                for ($pos = 1; $pos <= $team->tate_size; $pos++) {
+                    $slots->push((object) [
+                        'position' => $pos,
+                        'member' => null,
+                        'user' => null,
+                        'is_empty' => true,
+                    ]);
+                }
+
+                $matchTeamSlots->put($team->id, collect([1 => $slots]));
+            }
+        }
+
+        if ($selectedTeam) {
+            $tates = $matchTeamTates->get($selectedTeam->id, collect());
+            $selectedTateNo = $request->filled('tate_no')
+                ? $selectedTateNo
+                : (int) ($tates->first() ?? 1);
+        }
+
+        $users = $users->unique('id')->values();
+        $userIds = $users->pluck('id');
+
+        $records = Record::with('shots')
+            ->whereIn('user_id', $userIds)
+            ->where('date', $date)
+            ->where('practice_type', 'match')
+            ->whereIn('match_team_id', $teams->pluck('id'))
+            ->get()
+            ->groupBy('match_team_id')
+            ->map(fn($teamRecords) => $teamRecords->groupBy('user_id'));
+
+        $hitCounts = [];
+        $matchTateMetas = MatchTateMeta::whereIn('match_team_id', $teams->pluck('id'))
+            ->where('date', $date)
+            ->get()
+            ->groupBy('match_team_id')
+            ->map(fn($teamMetas) => $teamMetas->keyBy('tate_no'));
+
+        foreach ($teams as $team) {
+            $hitCounts[$team->id] = [];
+
+            foreach (($matchTeamUsers->get($team->id, collect()))->unique('id')->values() as $user) {
+                $hitCounts[$team->id][$user->id] = 0;
+
+                if (isset($records[$team->id][$user->id])) {
+                    foreach ($records[$team->id][$user->id] as $record) {
+                        $hitCounts[$team->id][$user->id] += $record->shots
+                            ->where('result', 'hit')
+                            ->count();
+                    }
+                }
+            }
+        }
+
+        $month = $request->month ?? \Carbon\Carbon::parse($date)->format('Y-m');
+        $prevMonth = \Carbon\Carbon::parse($month . '-01')->subMonth()->format('Y-m');
+        $nextMonth = \Carbon\Carbon::parse($month . '-01')->addMonth()->format('Y-m');
+
+        $lineupDates = Record::where('practice_type', 'match')
+            ->whereIn('match_team_id', MatchTeam::withTrashed()->where('group_id', $groupId)->pluck('id'))
+            ->whereHas('shots', function ($q) {
+                $q->whereNotNull('result');
+            })
+            ->whereYear('date', \Carbon\Carbon::parse($month . '-01')->year)
+            ->whereMonth('date', \Carbon\Carbon::parse($month . '-01')->month)
+            ->pluck('date')
+            ->map(fn($d) => \Carbon\Carbon::parse($d)->format('Y-m-d'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $lineupSlots = collect();
+        $matchTateSlots = $selectedTeam
+            ? $matchTeamSlots->get($selectedTeam->id, collect())
+            : collect();
+        $practiceType = 'match';
+        $recordLabel = '試合記録';
+        $basePath = "/group/{$groupId}/match-records";
+        $addTatePath = "/group/{$groupId}/match-add-tate";
+        $otherRecordPath = "/group/{$groupId}/records";
+        $otherRecordLabel = '正規連へ';
+
+        return view('group.records', compact(
+            'group',
+            'records',
+            'tates',
+            'date',
+            'users',
+            'hitCounts',
+            'tateSize',
+            'month',
+            'prevMonth',
+            'nextMonth',
+            'lineupDates',
+            'lineupSlots',
+            'practiceType',
+            'recordLabel',
+            'basePath',
+            'addTatePath',
+            'otherRecordPath',
+            'otherRecordLabel',
+            'teams',
+            'selectedTeam',
+            'matchTateSlots',
+            'selectedTateNo',
+            'matchTeamTates',
+            'matchTeamSlots',
+            'matchTateMetas',
+            'matchAttendanceByUserId'
         ));
     }
 
     public function addTate(Request $request, $groupId)
     {
+        return $this->addTateForType($request, $groupId, 'official');
+    }
+
+    public function switchOfficialSheet(Request $request, $groupId)
+    {
         $this->checkGroupAccess($groupId);
 
         $group = Group::with('users')->findOrFail($groupId);
         $date = $request->date ?? date('Y-m-d');
+        $activeSheetNo = max(1, (int) ($request->sheet_no ?? 1));
+        $maxTatesPerPage = max(1, (int) ($group->official_tates_per_page ?? 5));
+
+        $this->captureOfficialSheetLineup($group, $date, $activeSheetNo);
+
+        $nextSheetNo = $activeSheetNo + 1;
+
+        DB::table('official_record_sheets')->updateOrInsert(
+            [
+                'group_id' => $groupId,
+                'date' => $date,
+                'sheet_no' => $nextSheetNo,
+            ],
+            [
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        return redirect("/group/{$groupId}/records?date={$date}&sheet_no={$nextSheetNo}");
+    }
+
+    public function addMatchTate(Request $request, $groupId)
+    {
+        $this->checkGroupAccess($groupId);
+
+        $date = $request->date ?? date('Y-m-d');
+        $team = MatchTeam::where('group_id', $groupId)
+            ->when($request->team_id, fn($q) => $q->where('id', $request->team_id))
+            ->first();
+
+        if (!$team) {
+            return redirect("/group/{$groupId}/match-lineup?date={$date}");
+        }
+
+        $maxTate = $team->members()->where('date', $date)->max('tate_no') ?? 0;
+        $newTate = $maxTate + 1;
+
+        if ($maxTate > 0) {
+            foreach ($team->members()->where('date', $date)->where('tate_no', $maxTate)->get() as $member) {
+                $team->members()->create([
+                    'date' => $date,
+                    'user_id' => $member->user_id,
+                    'tate_no' => $newTate,
+                    'position' => $member->position,
+                    'is_absent' => $member->is_absent,
+                    'is_late' => $member->is_late,
+                ]);
+            }
+        }
+
+        return redirect("/group/{$groupId}/match-records?date={$date}&team_id={$team->id}&tate_no={$newTate}");
+    }
+
+    private function addTateForType(Request $request, $groupId, string $practiceType)
+    {
+        $this->checkGroupAccess($groupId);
+
+        $group = Group::with('users')->findOrFail($groupId);
+        $date = $request->date ?? date('Y-m-d');
+        $activeSheetNo = max(1, (int) ($request->sheet_no ?? 1));
+        $maxTatesPerPage = max(1, (int) ($group->official_tates_per_page ?? 5));
+        $redirectPath = $practiceType === 'match'
+            ? "/group/{$groupId}/match-records"
+            : "/group/{$groupId}/records";
 
         $lineup = Lineup::with('members.user')
             ->where('group_id', $groupId)
@@ -140,38 +546,75 @@ class GroupRecordController extends Controller
             ->first();
 
         if (!$lineup) {
-            return redirect("/group/{$groupId}/records?date={$date}");
+            return redirect("{$redirectPath}?date={$date}");
         }
 
         $this->syncLineupMembers($lineup, $group);
 
         $lineup = Lineup::with('members.user')->findOrFail($lineup->id);
 
-        $users = $lineup->members
+        $placedMembers = $lineup->members
             ->where('is_absent', false)
             ->where('is_late', false)
             ->filter(fn($m) => !is_null($m->position))
+            ->values();
+        $users = $placedMembers
             ->sortBy('position')
             ->pluck('user')
             ->filter()
             ->values();
 
         if ($users->isEmpty()) {
-            return redirect("/group/{$groupId}/records?date={$date}");
+            return redirect("{$redirectPath}?date={$date}");
         }
 
         $userIds = $users->pluck('id');
+        $groupUserIds = $group->users
+            ->where('is_admin', false)
+            ->pluck('id')
+            ->values();
 
-        $maxTate = Record::whereIn('user_id', $userIds)
+        $maxTate = Record::whereIn('user_id', $groupUserIds)
             ->where('date', $date)
-            ->where('practice_type', 'official')
+            ->where('practice_type', $practiceType)
+            ->when($practiceType === 'official', fn($query) => $query->where('official_sheet_no', $activeSheetNo))
             ->max('tate_no');
+
+        if ($practiceType === 'official' && $maxTate >= $maxTatesPerPage) {
+            return redirect("{$redirectPath}?date={$date}&sheet_no={$activeSheetNo}");
+        }
+
+        $lineupSnapshotsByUserId = $placedMembers
+            ->mapWithKeys(fn($member) => [
+                $member->user_id => [
+                    'position' => $member->position,
+                    'tate_size' => $lineup->tate_size,
+                ],
+            ]);
+
+        if ($maxTate) {
+            $this->ensureRecordsWithShots($userIds, $date, collect(range(1, $maxTate)), $practiceType, null, $lineupSnapshotsByUserId, true, $activeSheetNo);
+        }
 
         $newTate = $maxTate ? $maxTate + 1 : 1;
 
-        $this->ensureRecordsWithShots($userIds, $date, collect([$newTate]));
+        DB::table('official_record_sheets')->updateOrInsert(
+            [
+                'group_id' => $groupId,
+                'date' => $date,
+                'sheet_no' => $activeSheetNo,
+            ],
+            [
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
 
-        return redirect("/group/{$groupId}/records?date={$date}");
+        $this->ensureRecordsWithShots($userIds, $date, collect([$newTate]), $practiceType, null, $lineupSnapshotsByUserId, false, $activeSheetNo);
+
+        $sheetQuery = $practiceType === 'official' ? "&sheet_no={$activeSheetNo}" : '';
+
+        return redirect("{$redirectPath}?date={$date}{$sheetQuery}");
     }
 
     public function updateShot(Request $request, $id)
@@ -185,6 +628,19 @@ class GroupRecordController extends Controller
                 $q->where('user_id', $record->user_id);
             })
             ->value('group_id');
+
+        if (!$groupId && $record->practice_type === 'match') {
+            $groupId = MatchTeam::withTrashed()
+                ->where('id', $record->match_team_id)
+                ->orWhere(function ($query) use ($record) {
+                    $query->where('date', $record->date)
+                        ->whereHas('members', function ($q) use ($record) {
+                            $q->where('user_id', $record->user_id)
+                                ->where('tate_no', $record->tate_no);
+                        });
+                })
+                ->value('group_id');
+        }
 
         if ($groupId) {
             $this->checkGroupAccess($groupId);
@@ -222,10 +678,95 @@ class GroupRecordController extends Controller
         }
     }
 
-    private function ensureRecordsWithShots($userIds, $date, $tateNos): void
+    private function officialSheetNos($groupId, string $date, $groupUserIds)
+    {
+        $recordSheetNos = Record::whereIn('user_id', $groupUserIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->pluck('official_sheet_no')
+            ->filter()
+            ->values();
+
+        $savedSheetNos = DB::table('official_record_sheets')
+            ->where('group_id', $groupId)
+            ->where('date', $date)
+            ->pluck('sheet_no');
+
+        return $recordSheetNos
+            ->merge($savedSheetNos)
+            ->push(1)
+            ->unique()
+            ->sort()
+            ->values();
+    }
+
+    private function captureOfficialSheetLineup(Group $group, string $date, int $sheetNo): void
+    {
+        $lineup = Lineup::with('members.user')
+            ->where('group_id', $group->id)
+            ->where('date', $date)
+            ->first();
+
+        if (!$lineup) {
+            return;
+        }
+
+        $this->syncLineupMembers($lineup, $group);
+        $lineup = Lineup::with('members.user')->findOrFail($lineup->id);
+
+        $placedMembers = $lineup->members
+            ->where('is_absent', false)
+            ->where('is_late', false)
+            ->filter(fn($member) => !is_null($member->position))
+            ->values();
+
+        if ($placedMembers->isEmpty()) {
+            return;
+        }
+
+        $snapshotsByUserId = $placedMembers->mapWithKeys(fn($member) => [
+            $member->user_id => [
+                'position' => $member->position,
+                'tate_size' => $lineup->tate_size,
+            ],
+        ]);
+        $userIds = $placedMembers->pluck('user_id')->values();
+        $groupUserIds = $group->users
+            ->where('is_admin', false)
+            ->pluck('id')
+            ->values();
+
+        $tates = Record::whereIn('user_id', $groupUserIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->where('official_sheet_no', $sheetNo)
+            ->pluck('tate_no')
+            ->unique()
+            ->values();
+
+        if ($tates->isEmpty()) {
+            return;
+        }
+
+        $this->ensureRecordsWithShots($userIds, $date, $tates, 'official', null, $snapshotsByUserId, true, $sheetNo);
+
+        Record::whereIn('user_id', $groupUserIds)
+            ->whereNotIn('user_id', $userIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->where('official_sheet_no', $sheetNo)
+            ->whereIn('tate_no', $tates)
+            ->update([
+                'lineup_position' => null,
+                'lineup_tate_size' => null,
+            ]);
+    }
+
+    private function ensureRecordsWithShots($userIds, $date, $tateNos, string $practiceType = 'official', ?int $matchTeamId = null, $lineupSnapshotsByUserId = null, bool $overwriteSnapshot = false, int $officialSheetNo = 1): void
     {
         $userIds = collect($userIds)->values();
         $tateNos = collect($tateNos)->values();
+        $lineupSnapshotsByUserId = collect($lineupSnapshotsByUserId);
 
         if ($userIds->isEmpty() || $tateNos->isEmpty()) {
             return;
@@ -234,7 +775,9 @@ class GroupRecordController extends Controller
         // ===== 既存Recordをまとめて取得 =====
         $existingRecords = Record::whereIn('user_id', $userIds)
             ->where('date', $date)
-            ->where('practice_type', 'official')
+            ->where('practice_type', $practiceType)
+            ->when($practiceType === 'official', fn($q) => $q->where('official_sheet_no', $officialSheetNo))
+            ->when($matchTeamId, fn($q) => $q->where('match_team_id', $matchTeamId))
             ->whereIn('tate_no', $tateNos)
             ->get();
 
@@ -250,11 +793,17 @@ class GroupRecordController extends Controller
                 $key = $userId . '-' . $tateNo;
 
                 if (!in_array($key, $existingKeys)) {
+                    $snapshot = $lineupSnapshotsByUserId->get($userId, []);
+
                     $recordInserts[] = [
                         'user_id' => $userId,
                         'date' => $date,
                         'tate_no' => $tateNo,
-                        'practice_type' => 'official',
+                        'practice_type' => $practiceType,
+                        'official_sheet_no' => $practiceType === 'official' ? $officialSheetNo : 1,
+                        'match_team_id' => $matchTeamId,
+                        'lineup_position' => $snapshot['position'] ?? null,
+                        'lineup_tate_size' => $snapshot['tate_size'] ?? null,
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
@@ -267,10 +816,25 @@ class GroupRecordController extends Controller
             Record::insert($recordInserts);
         }
 
+        if ($lineupSnapshotsByUserId->isNotEmpty()) {
+            foreach ($existingRecords as $record) {
+                $snapshot = $lineupSnapshotsByUserId->get($record->user_id);
+
+                if ($snapshot && ($overwriteSnapshot || is_null($record->lineup_position) || is_null($record->lineup_tate_size))) {
+                    $record->update([
+                        'lineup_position' => $overwriteSnapshot ? $snapshot['position'] : ($record->lineup_position ?? $snapshot['position']),
+                        'lineup_tate_size' => $overwriteSnapshot ? $snapshot['tate_size'] : ($record->lineup_tate_size ?? $snapshot['tate_size']),
+                    ]);
+                }
+            }
+        }
+
         // ===== Recordを再取得 =====
         $records = Record::whereIn('user_id', $userIds)
             ->where('date', $date)
-            ->where('practice_type', 'official')
+            ->where('practice_type', $practiceType)
+            ->when($practiceType === 'official', fn($q) => $q->where('official_sheet_no', $officialSheetNo))
+            ->when($matchTeamId, fn($q) => $q->where('match_team_id', $matchTeamId))
             ->whereIn('tate_no', $tateNos)
             ->get();
 
@@ -306,5 +870,45 @@ class GroupRecordController extends Controller
         if (!empty($shotInserts)) {
             Shot::insert($shotInserts);
         }
+    }
+
+    private function ensureMatchTeamRecords(MatchTeam $team, string $date, $tateNos, $attendanceByUserId = null): void
+    {
+        $attendanceByUserId = collect($attendanceByUserId);
+
+        foreach (collect($tateNos) as $tateNo) {
+            $userIds = $team->members()
+                ->where('date', $date)
+                ->where('tate_no', $tateNo)
+                ->whereNotNull('position')
+                ->pluck('user_id')
+                ->reject(function ($userId) use ($attendanceByUserId) {
+                    $attendance = $attendanceByUserId->get($userId);
+
+                    return $attendance?->is_absent || $attendance?->is_late;
+                });
+
+            $this->ensureRecordsWithShots($userIds, $date, collect([$tateNo]), 'match', $team->id);
+        }
+    }
+
+    private function attendanceMembersByUserId(Group $group, string $date)
+    {
+        $lineup = Lineup::firstOrCreate(
+            [
+                'group_id' => $group->id,
+                'date' => $date,
+            ],
+            [
+                'tate_size' => 9,
+            ]
+        );
+
+        $this->syncLineupMembers($lineup->load('members'), $group);
+
+        return $lineup->members()
+            ->whereHas('user', fn($q) => $q->where('is_admin', false))
+            ->get()
+            ->keyBy('user_id');
     }
 }

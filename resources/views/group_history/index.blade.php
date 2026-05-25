@@ -6,6 +6,10 @@
 
 @php
     $view = $view ?? request('view', 'ranking');
+    $scoreTypes = $scoreTypes ?? ['all'];
+    $keyword = $keyword ?? '';
+    $rankingQuery = ['score_types' => $scoreTypes];
+    $monthlyQuery = ['keyword' => $keyword];
 @endphp
 
 <div class="history-page">
@@ -26,10 +30,9 @@
         <a href="{{ route('group.history', [
                 'group' => $group->id,
                 'view' => 'ranking',
-                'score_type' => $scoreType,
                 'period' => $period,
                 'limit' => $limit
-            ]) }}"
+            ] + $rankingQuery) }}"
            class="page-tab {{ $view === 'ranking' ? 'active' : '' }}">
             ランキング
         </a>
@@ -38,8 +41,7 @@
                 'group' => $group->id,
                 'view' => 'monthly',
                 'month' => $month ?? now()->format('Y-m'),
-                'score_type' => $scoreType
-            ]) }}"
+            ] + $monthlyQuery) }}"
            class="page-tab {{ $view === 'monthly' ? 'active' : '' }}">
             月間記録{{ $currentMonth->format('Y年n月') }}
         </a>
@@ -50,19 +52,35 @@
         <form method="GET" class="filter-box">
             <input type="hidden" name="view" value="ranking">
 
-            <div class="row g-2">
-                <div class="col-12 col-md-4">
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-lg-6">
                     <label class="form-label">集計</label>
-                    <select name="score_type" class="form-select" onchange="this.form.submit()">
-                        <option value="all" {{ $scoreType === 'all' ? 'selected' : '' }}>総合</option>
-                        <option value="official" {{ $scoreType === 'official' ? 'selected' : '' }}>正規練</option>
-                        <option value="self" {{ $scoreType === 'self' ? 'selected' : '' }}>自主練</option>
-                    </select>
+                    <div class="score-checks" data-score-checks>
+                        <label class="score-check score-check-all {{ in_array('all', $scoreTypes, true) ? 'active' : '' }}">
+                            <input type="checkbox"
+                                   name="score_types[]"
+                                   value="all"
+                                   data-score-all
+                                   {{ in_array('all', $scoreTypes, true) ? 'checked' : '' }}>
+                            <span>総合</span>
+                        </label>
+
+                        @foreach ($availableScoreTypes as $type => $label)
+                            <label class="score-check score-check-detail {{ in_array($type, $scoreTypes, true) ? 'active' : '' }}">
+                                <input type="checkbox"
+                                       name="score_types[]"
+                                       value="{{ $type }}"
+                                       data-score-detail
+                                       {{ in_array($type, $scoreTypes, true) ? 'checked' : '' }}>
+                                <span>{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
                 </div>
 
-                <div class="col-12 col-md-4">
+                <div class="col-6 col-lg-3">
                     <label class="form-label">期間</label>
-                    <select name="period" class="form-select" onchange="this.form.submit()">
+                    <select name="period" class="form-select">
                         <option value="today" {{ $period === 'today' ? 'selected' : '' }}>今日</option>
                         <option value="week" {{ $period === 'week' ? 'selected' : '' }}>週間</option>
                         <option value="month" {{ $period === 'month' ? 'selected' : '' }}>月間</option>
@@ -70,14 +88,18 @@
                     </select>
                 </div>
 
-                <div class="col-12 col-md-4">
+                <div class="col-6 col-lg-3">
                     <label class="form-label">表示人数</label>
-                    <select name="limit" class="form-select" onchange="this.form.submit()">
+                    <select name="limit" class="form-select">
                         <option value="5" {{ (string)$limit === '5' ? 'selected' : '' }}>上位5人</option>
                         <option value="10" {{ (string)$limit === '10' ? 'selected' : '' }}>上位10人</option>
                         <option value="20" {{ (string)$limit === '20' ? 'selected' : '' }}>上位20人</option>
                         <option value="all" {{ (string)$limit === 'all' ? 'selected' : '' }}>全員</option>
                     </select>
+                </div>
+
+                <div class="col-12 filter-actions">
+                    <button type="submit" class="btn btn-dark">検索</button>
                 </div>
             </div>
         </form>
@@ -88,7 +110,7 @@
             @include('group_history.partials.rank_card', [
                 'rank' => $index + 1,
                 'row' => $row,
-                'scoreType' => $scoreType
+                'scoreTypes' => $scoreTypes
             ])
         @empty
             <p>男子の記録はありません。</p>
@@ -100,7 +122,7 @@
             @include('group_history.partials.rank_card', [
                 'rank' => $index + 1,
                 'row' => $row,
-                'scoreType' => $scoreType
+                'scoreTypes' => $scoreTypes
             ])
         @empty
             <p>女子の記録はありません。</p>
@@ -108,13 +130,31 @@
 
     @else
 
+        <form method="GET" class="filter-box monthly-filter">
+            <input type="hidden" name="view" value="monthly">
+            <input type="hidden" name="month" value="{{ $month }}">
+
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-9">
+                    <label class="form-label">名前検索</label>
+                    <input type="search"
+                           name="keyword"
+                           value="{{ $keyword }}"
+                           class="form-control"
+                           placeholder="名前で検索">
+                </div>
+                <div class="col-12 col-md-3 filter-actions">
+                    <button type="submit" class="btn btn-dark w-100">検索</button>
+                </div>
+            </div>
+        </form>
+
         <div class="month-nav">
             <a href="{{ route('group.history', [
                     'group' => $group->id,
                     'view' => 'monthly',
                     'month' => $prevMonth,
-                    'score_type' => $scoreType
-                ]) }}"
+                ] + $monthlyQuery) }}"
                class="btn btn-outline-secondary">
                 ＜
             </a>
@@ -127,8 +167,7 @@
                     'group' => $group->id,
                     'view' => 'monthly',
                     'month' => $nextMonth,
-                    'score_type' => $scoreType
-                ]) }}"
+                ] + $monthlyQuery) }}"
                class="btn btn-outline-secondary">
                 ＞
             </a>
@@ -170,6 +209,15 @@
                         </span>
                     </div>
 
+                    <div class="score-line">
+                        <span>試合</span>
+                        <span>
+                            {{ $row['match']['shots'] }}射
+                            {{ $row['match']['hits'] }}中
+                            {{ $row['match']['rate'] }}%
+                        </span>
+                    </div>
+
                 </div>
             </div>
         @endforeach
@@ -186,9 +234,14 @@
                         <th rowspan="2">名前</th>
                         <th colspan="3">正規練</th>
                         <th colspan="3">自主練</th>
+                        <th colspan="3">試合</th>
                         <th colspan="3">総合</th>
                     </tr>
                     <tr>
+                        <th>射数</th>
+                        <th>的中数</th>
+                        <th>的中率</th>
+
                         <th>射数</th>
                         <th>的中数</th>
                         <th>的中率</th>
@@ -216,6 +269,10 @@
                             <td>{{ $row['self']['hits'] }}</td>
                             <td>{{ $row['self']['rate'] }}%</td>
 
+                            <td>{{ $row['match']['shots'] }}</td>
+                            <td>{{ $row['match']['hits'] }}</td>
+                            <td>{{ $row['match']['rate'] }}%</td>
+
                             <td>{{ $row['all']['shots'] }}</td>
                             <td>{{ $row['all']['hits'] }}</td>
                             <td>{{ $row['all']['rate'] }}%</td>
@@ -228,5 +285,43 @@
     @endif
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const scoreChecks = document.querySelector('[data-score-checks]');
+    if (!scoreChecks) return;
+
+    const allInput = scoreChecks.querySelector('[data-score-all]');
+    const detailInputs = [...scoreChecks.querySelectorAll('[data-score-detail]')];
+
+    const syncScoreChecks = () => {
+        scoreChecks.querySelectorAll('.score-check').forEach(label => {
+            const input = label.querySelector('input');
+            label.classList.toggle('active', input.checked);
+        });
+    };
+
+    allInput.addEventListener('change', () => {
+        if (allInput.checked) {
+            detailInputs.forEach(input => input.checked = false);
+        }
+        syncScoreChecks();
+    });
+
+    detailInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            if (input.checked) {
+                allInput.checked = false;
+            }
+            if (!allInput.checked && detailInputs.every(detail => !detail.checked)) {
+                allInput.checked = true;
+            }
+            syncScoreChecks();
+        });
+    });
+
+    syncScoreChecks();
+});
+</script>
 
 @endsection

@@ -3,6 +3,11 @@ const pool = document.getElementById('pool');
 const tateSelect = document.getElementById('tateSize');
 const source = document.getElementById('membersSource');
 const saveStatus = document.getElementById('saveStatus');
+const memberSearch = document.getElementById('memberSearch');
+const lineupSummary = document.getElementById('lineupSummary');
+const selectedMemberLabel = document.getElementById('selectedMemberLabel');
+const poolCount = document.getElementById('poolCount');
+const poolTools = document.getElementById('poolTools');
 
 let dragged = null;
 let selectedMember = null;
@@ -11,6 +16,7 @@ let longPressTimer = null;
 let longPressed = false;
 let extraRows = 0;
 let currentTateSize = parseInt(tateSelect.value);
+let currentPoolFilter = 'all';
 
 function makeMember(sourceEl) {
     const div = document.createElement('div');
@@ -34,6 +40,8 @@ function makeMember(sourceEl) {
 
     div.draggable = true;
     div.dataset.id = sourceEl.dataset.id;
+    div.dataset.gender = sourceEl.dataset.gender || '';
+    div.dataset.name = sourceEl.textContent.trim().toLowerCase();
     div.textContent = sourceEl.textContent.trim();
     if (div.textContent.length >= 5) {
         div.classList.add('long-name');
@@ -57,6 +65,7 @@ function makeMember(sourceEl) {
             longPressed = true;
             cycleAttendance(div);
             selectMember(null);
+            updatePoolView();
             autoSave();
         }, 600);
     }, { passive: true });
@@ -74,6 +83,7 @@ function makeMember(sourceEl) {
         e.stopPropagation();
         cycleAttendance(div);
         selectMember(null);
+        updatePoolView();
         autoSave();
     });
 
@@ -90,6 +100,7 @@ function makeMember(sourceEl) {
         if (selectedMember && selectedMember !== div) {
             swapMembers(selectedMember, div);
             selectMember(null);
+            updatePoolView();
             autoSave();
             return;
         }
@@ -136,6 +147,11 @@ function selectMember(member) {
         member.classList.add('selected');
         document.querySelectorAll('.cell').forEach(el => el.classList.add('tap-target'));
         pool.classList.add('tap-target');
+        if (selectedMemberLabel) {
+            selectedMemberLabel.innerText = `選択中: ${member.textContent.trim()}`;
+        }
+    } else if (selectedMemberLabel) {
+        selectedMemberLabel.innerText = '選択なし';
     }
 }
 
@@ -155,9 +171,11 @@ function moveSelectedTo(target) {
 
     if (target.id === 'pool') {
         pool.appendChild(selectedMember);
+        sortPoolMembers();
     }
 
     selectMember(null);
+    updatePoolView();
     autoSave();
 }
 
@@ -240,6 +258,7 @@ function renderGrid(minRows = 0) {
             }
 
             clearDragOver();
+            updatePoolView();
             autoSave();
         });
 
@@ -344,6 +363,21 @@ function initMembers(reset = false) {
             pool.appendChild(member);
         }
     });
+
+    updatePoolView();
+}
+
+function sortPoolMembers() {
+    const members = Array.from(pool.querySelectorAll('.member'));
+
+    members
+        .sort((a, b) => {
+            const aUnavailable = a.classList.contains('absent') || a.classList.contains('late');
+            const bUnavailable = b.classList.contains('absent') || b.classList.contains('late');
+
+            return Number(aUnavailable) - Number(bUnavailable);
+        })
+        .forEach(member => pool.appendChild(member));
 }
 
 pool.addEventListener('click', () => {
@@ -364,6 +398,7 @@ pool.addEventListener('drop', e => {
     }
 
     clearDragOver();
+    updatePoolView();
     autoSave();
 });
 
@@ -410,6 +445,7 @@ function randomize() {
         pool.appendChild(member);
     });
 
+    updatePoolView();
     autoSave();
 }
 
@@ -477,6 +513,7 @@ function clearAll() {
     });
 
     selectMember(null);
+    updatePoolView();
     autoSave();
 }
 document.addEventListener('DOMContentLoaded', function () {
@@ -521,6 +558,8 @@ function cycleAttendance(div) {
         !div.classList.contains('absent')) {
 
         div.classList.add('late');
+        pool.appendChild(div);
+        sortPoolMembers();
         return;
     }
 
@@ -528,14 +567,83 @@ function cycleAttendance(div) {
     if (div.classList.contains('late')) {
         div.classList.remove('late');
         div.classList.add('absent');
+        pool.appendChild(div);
+        sortPoolMembers();
         return;
     }
 
     // 欠席 → 出席
     if (div.classList.contains('absent')) {
         div.classList.remove('absent');
+        sortPoolMembers();
     }
+
+    updatePoolView();
 }
+
+function memberMatchesFilter(member) {
+    const keyword = (memberSearch?.value || '').trim().toLowerCase();
+    const name = member.dataset.name || member.textContent.trim().toLowerCase();
+
+    if (keyword && !name.includes(keyword)) {
+        return false;
+    }
+
+    if (currentPoolFilter === 'male') return member.dataset.gender === 'male';
+    if (currentPoolFilter === 'female') return member.dataset.gender === 'female';
+    if (currentPoolFilter === 'active') {
+        return !member.classList.contains('absent') && !member.classList.contains('late');
+    }
+    if (currentPoolFilter === 'unavailable') {
+        return member.classList.contains('absent') || member.classList.contains('late');
+    }
+
+    return true;
+}
+
+function updatePoolView() {
+    sortPoolMembers();
+
+    const placed = document.querySelectorAll('#grid .member').length;
+    const unplaced = document.querySelectorAll('#pool .member').length;
+    const total = placed + unplaced;
+
+    if (lineupSummary) {
+        lineupSummary.innerText = `配置 ${placed} / 未配置 ${unplaced} / 合計 ${total}`;
+    }
+
+    if (poolCount) {
+        poolCount.innerText = `${unplaced}人`;
+    }
+
+    document.querySelectorAll('#pool .member').forEach(member => {
+        member.classList.toggle('hidden-by-filter', !memberMatchesFilter(member));
+    });
+}
+
+function setPoolFilter(filter) {
+    currentPoolFilter = filter;
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+
+    updatePoolView();
+}
+
+function togglePoolPanel() {
+    if (!pool || !poolTools) return;
+
+    pool.classList.toggle('pool-collapsed');
+    poolTools.classList.toggle('pool-collapsed');
+}
+
+if (memberSearch) {
+    memberSearch.addEventListener('input', updatePoolView);
+}
+
 window.addLineupRow = addLineupRow;
 window.randomize = randomize;
 window.clearAll = clearAll;
+window.setPoolFilter = setPoolFilter;
+window.togglePoolPanel = togglePoolPanel;

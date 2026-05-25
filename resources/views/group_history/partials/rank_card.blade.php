@@ -1,4 +1,9 @@
 <div class="rank-card">
+    @php
+        $scoreTypes = $scoreTypes ?? ['all'];
+        $allSelected = in_array('all', $scoreTypes, true);
+    @endphp
+
     <div class="rank-no">{{ $rank }}</div>
 
     <div class="avatar-area">
@@ -22,7 +27,7 @@
     <div class="rank-info">
         <div class="user-name">{{ $row['user']->name }}</div>
 
-        <div class="score-line {{ $scoreType === 'all' ? 'active-score' : '' }}">
+        <div class="score-line {{ $allSelected ? 'active-score-subtle' : '' }}">
             <span>総合</span>
             <span>
                 {{ $row['all']['shots'] }}射
@@ -31,7 +36,7 @@
             </span>
         </div>
 
-        <div class="score-line {{ $scoreType === 'official' ? 'active-score' : '' }}">
+        <div class="score-line {{ !$allSelected && in_array('official', $scoreTypes, true) ? 'active-score-subtle' : '' }}">
             <span>正規練</span>
             <span>
                 {{ $row['official']['shots'] }}射
@@ -40,12 +45,21 @@
             </span>
         </div>
 
-        <div class="score-line {{ $scoreType === 'self' ? 'active-score' : '' }}">
+        <div class="score-line {{ !$allSelected && in_array('self', $scoreTypes, true) ? 'active-score-subtle' : '' }}">
             <span>自主練</span>
             <span>
                 {{ $row['self']['shots'] }}射
                 {{ $row['self']['hits'] }}中
                 {{ $row['self']['rate'] }}%
+            </span>
+        </div>
+
+        <div class="score-line {{ !$allSelected && in_array('match', $scoreTypes, true) ? 'active-score-subtle' : '' }}">
+            <span>試合</span>
+            <span>
+                {{ $row['match']['shots'] }}射
+                {{ $row['match']['hits'] }}中
+                {{ $row['match']['rate'] }}%
             </span>
         </div>
     </div>
