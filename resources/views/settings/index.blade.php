@@ -98,6 +98,25 @@
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label for="match_record_height_extra" class="form-label">試合記録欄の下位置（ユーザー設定）</label>
+                        <select id="match_record_height_extra"
+                                name="match_record_height_extra"
+                                class="form-select @error('match_record_height_extra') is-invalid @enderror">
+                            @php
+                                $selectedMatchHeight = (int) old('match_record_height_extra', $user->match_record_height_extra ?? 60);
+                            @endphp
+                            @foreach($heightOptions as $value => $label)
+                                <option value="{{ $value }}" {{ $selectedMatchHeight === $value ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('match_record_height_extra')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <button class="btn btn-primary">保存</button>
                 </form>
             </div>

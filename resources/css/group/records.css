@@ -51,7 +51,7 @@ body {
 }
 
 .match-score-scroll {
-    height: calc(100dvh - 250px + var(--record-height-extra, 60px));
+    height: calc(100dvh - 180px + var(--match-record-height-extra, 60px));
     max-height: none;
     overflow: auto;
     border: 0;
@@ -253,7 +253,7 @@ body {
     }
 
     .match-score-scroll {
-        height: calc(100dvh - 300px + var(--record-height-extra, 60px));
+        height: calc(100dvh - 220px + var(--match-record-height-extra, 60px));
     }
 }
 
@@ -263,7 +263,7 @@ body {
     }
 
     .match-score-scroll {
-        height: calc(100dvh - 330px + var(--record-height-extra, 60px));
+        height: calc(100dvh - 250px + var(--match-record-height-extra, 60px));
     }
 
     .official-sheet-head {
@@ -297,7 +297,7 @@ body {
     }
 
     .match-score-scroll {
-        height: calc(100dvh - 370px + var(--record-height-extra, 60px));
+        height: calc(100dvh - 290px + var(--match-record-height-extra, 60px));
     }
 
     .official-sheet-actions {
@@ -443,7 +443,7 @@ body {
 .match-team-panel {
     flex: 0 0 auto;
     width: max-content;
-    max-width: calc(100vw - 36px);
+    max-width: none;
     border: 1px solid #d7dee8;
     border-radius: 8px;
     background: #fff;
@@ -559,10 +559,10 @@ body {
     display: flex;
     flex-direction: row-reverse;
     gap: 8px;
-    overflow-x: auto;
+    overflow: visible;
     padding-bottom: 4px;
     width: max-content;
-    max-width: 100%;
+    max-width: none;
 }
 
 .match-vertical-row.compact-tate {

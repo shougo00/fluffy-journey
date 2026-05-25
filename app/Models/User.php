@@ -31,6 +31,7 @@ class User extends Authenticatable
         'gender',
         'all_absent',
         'official_record_height_extra',
+        'match_record_height_extra',
         'line_user_id',
         'line_link_code',
     ];
