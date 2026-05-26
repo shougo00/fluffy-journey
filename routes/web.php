@@ -34,6 +34,7 @@ Route::middleware([ 'verified'])->group(function () {
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings/unlock', [SettingController::class, 'unlock'])->name('settings.unlock');
     Route::patch('/settings', [SettingController::class, 'update'])->name('settings.update');
+    Route::post('/settings/promote-grades', [SettingController::class, 'promoteGrades'])->name('settings.promote-grades');
 
     // 3️⃣ ユーザ管理画面
     Route::get('/users', [UserController::class, 'index'])->name('users.index');

@@ -33,6 +33,35 @@
         'female' => '女子の部',
         'mixed' => '混合の部',
     ];
+    $usesGrades = (bool) ($group->uses_grades ?? false);
+    $gradeColors = collect($group->grade_colors ?? []);
+    $gradeTextColor = function (?string $color) {
+        if (!$color || !preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+            return '#222222';
+        }
+
+        $r = hexdec(substr($color, 1, 2));
+        $g = hexdec(substr($color, 3, 2));
+        $b = hexdec(substr($color, 5, 2));
+
+        return (($r * 299 + $g * 587 + $b * 114) / 1000) >= 150 ? '#1f2937' : '#ffffff';
+    };
+    $gradeColorFor = function ($user) use ($usesGrades, $gradeColors) {
+        if (!$usesGrades || !$user?->grade_level) {
+            return null;
+        }
+
+        return $gradeColors->get((string) $user->grade_level) ?? $gradeColors->get((int) $user->grade_level);
+    };
+    $gradeStyleFor = function ($user) use ($gradeColorFor, $gradeTextColor) {
+        $color = $gradeColorFor($user);
+
+        if (!$color) {
+            return '';
+        }
+
+        return 'background:' . $color . '; color:' . $gradeTextColor($color) . '; border-color:' . $color . ';';
+    };
 @endphp
 
 <div class="record-title-bar">
@@ -126,6 +155,9 @@
                                  data-user-id="{{ $user->id }}"
                                  data-position="{{ $saved?->position }}"
                                  data-gender="{{ $user->gender }}"
+                                 data-grade-level="{{ $user->grade_level }}"
+                                 data-grade-color="{{ $gradeColorFor($user) }}"
+                                 data-grade-text-color="{{ $gradeTextColor($gradeColorFor($user)) }}"
                                  data-late="{{ $attendance?->is_late ? 1 : 0 }}"
                                  data-absent="{{ $attendance?->is_absent ? 1 : 0 }}"
                                  class="{{ $attendance?->is_late ? 'late' : '' }} {{ $attendance?->is_absent ? 'absent' : '' }}">
@@ -458,7 +490,7 @@
                                 </div>
                                 @endfor
 
-                                <div class="match-vertical-name">
+                                <div class="match-vertical-name" style="{{ $gradeStyleFor($user) }}">
                                     <span>{{ $slot->position }}</span>
                                     {{ $user->name }}
                                     <strong data-shot-counter="{{ $record?->id }}">{{ $tateHitCount }}中</strong>
@@ -587,7 +619,8 @@
     <div class="name-row official-name-row">
         <div class="tate-label name-row-label">名前</div>
         @foreach($nameSlots as $slot)
-            <div class="tate-user-name {{ $slot->is_empty ? 'empty-name' : '' }} {{ (($loop->index + 1) % $nameTateSize == 0) ? 'tate-border' : '' }}">
+            <div class="tate-user-name {{ $slot->is_empty ? 'empty-name' : '' }} {{ (($loop->index + 1) % $nameTateSize == 0) ? 'tate-border' : '' }}"
+                 style="{{ !$slot->is_empty ? $gradeStyleFor($slot->user) : '' }}">
                 <span>{{ $slot->position }}</span>
                 {{ $slot->is_empty ? '空き' : $slot->user->name }}
             </div>

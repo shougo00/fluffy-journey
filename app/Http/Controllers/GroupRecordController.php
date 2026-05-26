@@ -93,21 +93,15 @@ class GroupRecordController extends Controller
             ->pluck('id')
             ->values();
         $userIds = $users->pluck('id');
+
+        $this->normalizeOfficialTateNos($date, $groupUserIds);
+
         $sheetNos = $this->officialSheetNos($groupId, $date, $groupUserIds);
         $activeSheetNo = (int) ($request->sheet_no ?? $sheetNos->max() ?? 1);
 
         if ($activeSheetNo < 1) {
             $activeSheetNo = 1;
         }
-
-        $isCurrentSheet = $activeSheetNo === (int) ($sheetNos->max() ?? 1);
-        $tateDisplayOffset = Record::whereIn('user_id', $groupUserIds)
-            ->where('date', $date)
-            ->where('practice_type', $practiceType)
-            ->where('official_sheet_no', '<', $activeSheetNo)
-            ->get(['official_sheet_no', 'tate_no'])
-            ->unique(fn($record) => $record->official_sheet_no . '-' . $record->tate_no)
-            ->count();
 
         $tates = Record::whereIn('user_id', $groupUserIds)
             ->where('date', $date)
@@ -117,6 +111,9 @@ class GroupRecordController extends Controller
             ->unique()
             ->sort()
             ->values();
+
+        $isCurrentSheet = $activeSheetNo === (int) ($sheetNos->max() ?? 1);
+        $tateDisplayOffset = $this->officialTateDisplayOffset($groupUserIds, $date, $activeSheetNo, $tates);
 
         if ($isCurrentSheet && $userIds->isNotEmpty() && $tates->isNotEmpty()) {
             $this->ensureRecordsWithShots(
@@ -578,13 +575,20 @@ class GroupRecordController extends Controller
             ->pluck('id')
             ->values();
 
-        $maxTate = Record::whereIn('user_id', $groupUserIds)
+        if ($practiceType === 'official') {
+            $this->normalizeOfficialTateNos($date, $groupUserIds);
+        }
+
+        $currentSheetTates = Record::whereIn('user_id', $groupUserIds)
             ->where('date', $date)
             ->where('practice_type', $practiceType)
             ->when($practiceType === 'official', fn($query) => $query->where('official_sheet_no', $activeSheetNo))
-            ->max('tate_no');
+            ->pluck('tate_no')
+            ->unique()
+            ->sort()
+            ->values();
 
-        if ($practiceType === 'official' && $maxTate >= $maxTatesPerPage) {
+        if ($practiceType === 'official' && $currentSheetTates->count() >= $maxTatesPerPage) {
             return redirect("{$redirectPath}?date={$date}&sheet_no={$activeSheetNo}");
         }
 
@@ -596,9 +600,14 @@ class GroupRecordController extends Controller
                 ],
             ]);
 
-        if ($maxTate) {
-            $this->ensureRecordsWithShots($userIds, $date, collect(range(1, $maxTate)), $practiceType, null, $lineupSnapshotsByUserId, true, $activeSheetNo);
+        if ($currentSheetTates->isNotEmpty()) {
+            $this->ensureRecordsWithShots($userIds, $date, $currentSheetTates, $practiceType, null, $lineupSnapshotsByUserId, true, $activeSheetNo);
         }
+
+        $maxTate = Record::whereIn('user_id', $groupUserIds)
+            ->where('date', $date)
+            ->where('practice_type', $practiceType)
+            ->max('tate_no');
 
         $newTate = $maxTate ? $maxTate + 1 : 1;
 
@@ -702,6 +711,88 @@ class GroupRecordController extends Controller
             ->unique()
             ->sort()
             ->values();
+    }
+
+    private function officialTateDisplayOffset($groupUserIds, string $date, int $activeSheetNo, $tates): int
+    {
+        $tates = collect($tates);
+
+        if ($activeSheetNo <= 1 || $tates->isEmpty()) {
+            return 0;
+        }
+
+        $priorTateNos = Record::whereIn('user_id', $groupUserIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->where('official_sheet_no', '<', $activeSheetNo)
+            ->pluck('tate_no')
+            ->unique()
+            ->values();
+
+        if ($tates->intersect($priorTateNos)->isEmpty()) {
+            return 0;
+        }
+
+        return Record::whereIn('user_id', $groupUserIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->where('official_sheet_no', '<', $activeSheetNo)
+            ->get(['official_sheet_no', 'tate_no'])
+            ->unique(fn($record) => $record->official_sheet_no . '-' . $record->tate_no)
+            ->count();
+    }
+
+    private function normalizeOfficialTateNos(string $date, $groupUserIds): void
+    {
+        $sheetTates = Record::whereIn('user_id', $groupUserIds)
+            ->where('date', $date)
+            ->where('practice_type', 'official')
+            ->get(['official_sheet_no', 'tate_no'])
+            ->filter(fn($record) => (int) $record->official_sheet_no > 0 && (int) $record->tate_no > 0)
+            ->unique(fn($record) => $record->official_sheet_no . '-' . $record->tate_no)
+            ->sortBy([
+                ['official_sheet_no', 'asc'],
+                ['tate_no', 'asc'],
+            ])
+            ->values();
+
+        if ($sheetTates->isEmpty()) {
+            return;
+        }
+
+        $hasCrossSheetDuplicate = $sheetTates
+            ->groupBy('tate_no')
+            ->contains(fn($records) => $records->pluck('official_sheet_no')->unique()->count() > 1);
+
+        if (!$hasCrossSheetDuplicate) {
+            return;
+        }
+
+        DB::transaction(function () use ($groupUserIds, $date, $sheetTates) {
+            foreach ($sheetTates as $index => $sheetTate) {
+                Record::whereIn('user_id', $groupUserIds)
+                    ->where('date', $date)
+                    ->where('practice_type', 'official')
+                    ->where('official_sheet_no', $sheetTate->official_sheet_no)
+                    ->where('tate_no', $sheetTate->tate_no)
+                    ->update([
+                        'tate_no' => -($index + 1),
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            foreach ($sheetTates as $index => $sheetTate) {
+                Record::whereIn('user_id', $groupUserIds)
+                    ->where('date', $date)
+                    ->where('practice_type', 'official')
+                    ->where('official_sheet_no', $sheetTate->official_sheet_no)
+                    ->where('tate_no', -($index + 1))
+                    ->update([
+                        'tate_no' => $index + 1,
+                        'updated_at' => now(),
+                    ]);
+            }
+        });
     }
 
     private function captureOfficialSheetLineup(Group $group, string $date, int $sheetNo): void

@@ -10,6 +10,17 @@ class Group extends Model
         'host_user_id',
         'invite_code',
         'official_tates_per_page',
+        'uses_grades',
+        'grade_count',
+        'grade_colors',
+        'last_grade_promoted_year',
+    ];
+
+    protected $casts = [
+        'uses_grades' => 'boolean',
+        'grade_count' => 'integer',
+        'grade_colors' => 'array',
+        'last_grade_promoted_year' => 'integer',
     ];
 
     public function users()

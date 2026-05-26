@@ -30,6 +30,13 @@ function makeMember(sourceEl) {
         div.classList.add('female');
     }
 
+    if (sourceEl.dataset.gradeColor) {
+        div.classList.add('grade-colored');
+        div.style.backgroundColor = sourceEl.dataset.gradeColor;
+        div.style.borderColor = sourceEl.dataset.gradeColor;
+        div.style.color = sourceEl.dataset.gradeTextColor || '#222';
+    }
+
     if (sourceEl.classList.contains('absent')) {
         div.classList.add('absent');
     }
@@ -507,6 +514,9 @@ function save(showAlert = false) {
     });
 }
 function clearAll() {
+    if (!confirm('本当に全員を未配置にしますか？\nページを切り替えていない場合、現在の立順が保存されません。')) {
+        return;
+    }
 
     document.querySelectorAll('#grid .member').forEach(member => {
         pool.appendChild(member);

@@ -55,10 +55,24 @@ class SettingController extends Controller
             'official_tates_per_page' => ['required', 'integer', 'min:1', 'max:10'],
             'official_record_height_extra' => ['required', 'integer', 'in:0,30,60,90,120'],
             'match_record_height_extra' => ['required', 'integer', 'in:0,30,60,90,120'],
+            'uses_grades' => ['nullable', 'boolean'],
+            'grade_count' => ['required', 'integer', 'min:1', 'max:12'],
+            'grade_colors' => ['array'],
+            'grade_colors.*' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
         ]);
+
+        $gradeCount = (int) $validated['grade_count'];
+        $gradeColors = [];
+
+        for ($grade = 1; $grade <= $gradeCount; $grade++) {
+            $gradeColors[$grade] = $validated['grade_colors'][$grade] ?? $this->defaultGradeColor($grade);
+        }
 
         $group->update([
             'official_tates_per_page' => $validated['official_tates_per_page'],
+            'uses_grades' => $request->boolean('uses_grades'),
+            'grade_count' => $gradeCount,
+            'grade_colors' => $gradeColors,
         ]);
 
         $request->user()->update([
@@ -67,6 +81,42 @@ class SettingController extends Controller
         ]);
 
         return back()->with('status', 'settings-updated');
+    }
+
+    public function promoteGrades(Request $request): RedirectResponse
+    {
+        $group = $this->currentGroup($request);
+
+        if (!$group) {
+            return back()->withErrors(['grade_level' => 'グループに参加していません。']);
+        }
+
+        if (!$request->session()->get($this->sessionKey($group->id), false)) {
+            return redirect()->route('settings.index');
+        }
+
+        if (!$group->uses_grades) {
+            return back()->withErrors(['grade_level' => '学年表示が有効になっていません。']);
+        }
+
+        $maxGrade = max(1, (int) ($group->grade_count ?? 1));
+        $promotedCount = 0;
+
+        $group->users()
+            ->where('is_admin', false)
+            ->whereNotNull('grade_level')
+            ->get()
+            ->each(function ($user) use ($maxGrade, &$promotedCount) {
+                $currentGrade = (int) $user->grade_level;
+                $nextGrade = $currentGrade + 1 > $maxGrade ? null : $currentGrade + 1;
+
+                $user->update(['grade_level' => $nextGrade]);
+                $promotedCount++;
+            });
+
+        return back()
+            ->with('status', 'grades-promoted')
+            ->with('promoted_count', $promotedCount);
     }
 
     private function currentGroup(Request $request): ?Group
@@ -79,5 +129,25 @@ class SettingController extends Controller
     private function sessionKey(int $groupId): string
     {
         return "settings_unlocked_group_{$groupId}";
+    }
+
+    private function defaultGradeColor(int $grade): string
+    {
+        $colors = [
+            '#dbeafe',
+            '#fee2e2',
+            '#dcfce7',
+            '#fef3c7',
+            '#ede9fe',
+            '#cffafe',
+            '#fce7f3',
+            '#e5e7eb',
+            '#ffedd5',
+            '#ccfbf1',
+            '#fae8ff',
+            '#e0f2fe',
+        ];
+
+        return $colors[($grade - 1) % count($colors)];
     }
 }

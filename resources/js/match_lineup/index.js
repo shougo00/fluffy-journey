@@ -18,6 +18,12 @@ function makeMember(sourceEl) {
 
     if (sourceEl.dataset.gender === 'male') div.classList.add('male');
     if (sourceEl.dataset.gender === 'female') div.classList.add('female');
+    if (sourceEl.dataset.gradeColor) {
+        div.classList.add('grade-colored');
+        div.style.backgroundColor = sourceEl.dataset.gradeColor;
+        div.style.borderColor = sourceEl.dataset.gradeColor;
+        div.style.color = sourceEl.dataset.gradeTextColor || '#222';
+    }
     if (sourceEl.dataset.late === '1' || sourceEl.classList.contains('late')) div.classList.add('late');
     if (sourceEl.dataset.absent === '1' || sourceEl.classList.contains('absent')) div.classList.add('absent');
     if (div.textContent.length >= 5) div.classList.add('long-name');

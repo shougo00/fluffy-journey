@@ -10,6 +10,26 @@
         'female' => '女子の部',
         'mixed' => '混合の部',
     ];
+    $usesGrades = (bool) ($group->uses_grades ?? false);
+    $gradeColors = collect($group->grade_colors ?? []);
+    $gradeTextColor = function (?string $color) {
+        if (!$color || !preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+            return '#222222';
+        }
+
+        $r = hexdec(substr($color, 1, 2));
+        $g = hexdec(substr($color, 3, 2));
+        $b = hexdec(substr($color, 5, 2));
+
+        return (($r * 299 + $g * 587 + $b * 114) / 1000) >= 150 ? '#1f2937' : '#ffffff';
+    };
+    $gradeColorFor = function ($user) use ($usesGrades, $gradeColors) {
+        if (!$usesGrades || !$user?->grade_level) {
+            return null;
+        }
+
+        return $gradeColors->get((string) $user->grade_level) ?? $gradeColors->get((int) $user->grade_level);
+    };
 @endphp
 
 <div class="match-lineup-page py-3">
@@ -108,6 +128,9 @@
                      data-user-id="{{ $user->id }}"
                      data-position="{{ $saved?->position }}"
                      data-gender="{{ $user->gender }}"
+                     data-grade-level="{{ $user->grade_level }}"
+                     data-grade-color="{{ $gradeColorFor($user) }}"
+                     data-grade-text-color="{{ $gradeTextColor($gradeColorFor($user)) }}"
                      data-late="{{ $attendance?->is_late ? 1 : 0 }}"
                      data-absent="{{ $attendance?->is_absent ? 1 : 0 }}"
                      class="{{ $attendance?->is_late ? 'late' : '' }} {{ $attendance?->is_absent ? 'absent' : '' }}">

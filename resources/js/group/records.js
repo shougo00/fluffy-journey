@@ -225,6 +225,12 @@ function initInlineMatchLineup() {
 
         if (sourceEl.dataset.gender === 'male') member.classList.add('male');
         if (sourceEl.dataset.gender === 'female') member.classList.add('female');
+        if (sourceEl.dataset.gradeColor) {
+            member.classList.add('grade-colored');
+            member.style.backgroundColor = sourceEl.dataset.gradeColor;
+            member.style.borderColor = sourceEl.dataset.gradeColor;
+            member.style.color = sourceEl.dataset.gradeTextColor || '#222';
+        }
         if (sourceEl.dataset.late === '1' || sourceEl.classList.contains('late')) member.classList.add('late');
         if (sourceEl.dataset.absent === '1' || sourceEl.classList.contains('absent')) member.classList.add('absent');
         if (member.textContent.length >= 5) member.classList.add('long-name');

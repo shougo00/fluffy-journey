@@ -16,8 +16,11 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $group = $request->user()?->groups()->first();
+
         return view('profile.edit_user', [
             'user' => $request->user(),
+            'group' => $group,
         ]);
     }
 

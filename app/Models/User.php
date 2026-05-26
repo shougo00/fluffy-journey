@@ -29,6 +29,7 @@ class User extends Authenticatable
         'next_exp',
         'point',
         'gender',
+        'grade_level',
         'all_absent',
         'official_record_height_extra',
         'match_record_height_extra',
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'grade_level' => 'integer',
         ];
     }
         // app/Models/User.php

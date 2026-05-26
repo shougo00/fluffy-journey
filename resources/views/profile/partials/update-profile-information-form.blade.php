@@ -58,6 +58,31 @@
                 <div class="text-danger">{{ $message }}</div>
             @enderror
         </div>
+
+        @if(($group ?? null)?->uses_grades)
+            <div class="mb-3">
+                <label class="form-label">学年</label>
+                <input type="hidden" name="grade_level" value="">
+
+                <div class="d-flex flex-wrap gap-3">
+                    @for($grade = 1; $grade <= max(1, (int) $group->grade_count); $grade++)
+                        <label class="form-check">
+                            <input class="form-check-input grade-level-check"
+                                   type="checkbox"
+                                   name="grade_level"
+                                   value="{{ $grade }}"
+                                   {{ (int) old('grade_level', $user->grade_level) === $grade ? 'checked' : '' }}>
+                            <span class="form-check-label">{{ $grade }}学年</span>
+                        </label>
+                    @endfor
+                </div>
+
+                @error('grade_level')
+                    <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+        @endif
+
         @if($user->groups()->exists())
         <div class="mb-3">
             <label class="form-label">ホストユーザー</label>
@@ -107,3 +132,17 @@
         </form>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.grade-level-check').forEach(check => {
+        check.addEventListener('change', () => {
+            if (!check.checked) return;
+
+            document.querySelectorAll('.grade-level-check').forEach(other => {
+                if (other !== check) other.checked = false;
+            });
+        });
+    });
+});
+</script>

@@ -148,9 +148,9 @@
     background: #444 !important;
 }
 .member.late {
-    background: #ffd54f;
-    color: #000;
-    border-color: #fbc02d;
+    background: #ffd54f !important;
+    color: #000 !important;
+    border-color: #fbc02d !important;
 }
 
 .member.late::after,

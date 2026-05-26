@@ -5,6 +5,28 @@
 @vite(['resources/css/lineup/index.css', 'resources/js/lineup/index.js'])
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+@php
+    $usesGrades = (bool) ($group->uses_grades ?? false);
+    $gradeColors = collect($group->grade_colors ?? []);
+    $gradeTextColor = function (?string $color) {
+        if (!$color || !preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+            return '#222222';
+        }
+
+        $r = hexdec(substr($color, 1, 2));
+        $g = hexdec(substr($color, 3, 2));
+        $b = hexdec(substr($color, 5, 2));
+
+        return (($r * 299 + $g * 587 + $b * 114) / 1000) >= 150 ? '#1f2937' : '#ffffff';
+    };
+    $gradeColorFor = function ($user) use ($usesGrades, $gradeColors) {
+        if (!$usesGrades || !$user?->grade_level) {
+            return null;
+        }
+
+        return $gradeColors->get((string) $user->grade_level) ?? $gradeColors->get((int) $user->grade_level);
+    };
+@endphp
 <div class="container py-3">
 
 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -120,7 +142,10 @@
     {{ $m->is_late ? 'late' : '' }}"
          data-id="{{ $m->id }}"
          data-position="{{ $m->position }}"
-         data-gender="{{ $m->user->gender }}">
+         data-gender="{{ $m->user->gender }}"
+         data-grade-level="{{ $m->user->grade_level }}"
+         data-grade-color="{{ $gradeColorFor($m->user) }}"
+         data-grade-text-color="{{ $gradeTextColor($gradeColorFor($m->user)) }}">
         {{ $m->user->name }}
     </div>
 @endforeach
