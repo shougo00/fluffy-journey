@@ -1118,7 +1118,8 @@ body.modal-open {
     }
 
     .score,
-    .name {
+    .name,
+    .tate-user-name {
         width: 55px;
         min-width: 55px;
         font-size: 12px;

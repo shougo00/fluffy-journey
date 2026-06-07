@@ -136,7 +136,7 @@ Route::middleware([ 'verified'])->group(function () {
             }
 
             return app(\App\Http\Controllers\RecordController::class)->dashboard(request());
-    })->name('dashboard');
+    })->name('dashboard')->middleware('auth');
     Route::get('/home', function () {
         if (auth()->check() && auth()->user()->is_admin) {
 
